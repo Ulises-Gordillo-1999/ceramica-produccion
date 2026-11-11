@@ -35,3 +35,4 @@ export function canManageUsers(role: RoleType): boolean {
 export function canManageCatalog(role: RoleType): boolean {
   return role === 'ADMIN' || role === 'INGENIERO_ENCARGADO';
 }
+

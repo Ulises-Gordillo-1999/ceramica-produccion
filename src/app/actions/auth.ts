@@ -179,3 +179,4 @@ export async function removePasskeyAction(id: number): Promise<{ ok: boolean }> 
   await db.delete(userPasskeys).where(eq(userPasskeys.id, id));
   return { ok: true };
 }
+

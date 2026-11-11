@@ -157,3 +157,4 @@ export async function verifyBiometricPasskey(): Promise<{ credentialId: string }
     'No hay una huella vinculada en este dispositivo. Ingresa primero con tu usuario y activa "Acceso con Huella" en el menú.'
   );
 }
+

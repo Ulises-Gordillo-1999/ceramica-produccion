@@ -15,3 +15,4 @@ Además registra **Salida de Material (Toneladas)**, **Consumo de Gas por Turno*
 - **Estilos y Temas:** Tailwind CSS v4 con soporte Claro / Oscuro / Sistema sin parpadeo (`ThemeProvider` + script inline en `src/app/layout.tsx`).
 - **Ergonomía Móvil y PWA:** Diseño Mobile-First (`responsive-design`), instalable como PWA (`public/manifest.webmanifest`) y autenticación con Huella Digital / FaceID vía WebAuthn (`src/utils/biometrics.ts`).
 - **Seguridad RBAC:** Roles `ADMIN`, `DIRECTORIO`, `INGENIERO_ENCARGADO` y `CAPATAZ` protegidos por JWT (`jose`) en cookies `HttpOnly`.
+

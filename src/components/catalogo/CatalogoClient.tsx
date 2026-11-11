@@ -334,3 +334,4 @@ export function CatalogoClient({ bricks }: { bricks: BrickType[] }) {
     </div>
   );
 }
+

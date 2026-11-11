@@ -134,3 +134,4 @@ export function exportDailyProductionPdf(summary: DailyProductionSummary) {
 
   doc.save(`produccion-ceramica-${summary.date}.pdf`);
 }
+

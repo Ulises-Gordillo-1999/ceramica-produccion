@@ -139,3 +139,4 @@ export type RoleType = (typeof roleEnum.enumValues)[number];
 export type ShiftType = (typeof shiftTypeEnum.enumValues)[number];
 export type ShiftStatusType = (typeof shiftStatusEnum.enumValues)[number];
 export type ProductionStageType = (typeof productionStageEnum.enumValues)[number];
+

@@ -470,3 +470,4 @@ export async function getRangeComparisonData(startDate: string, endDate: string)
     recentLogs,
   };
 }
+
