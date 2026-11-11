@@ -17,11 +17,13 @@ import {
   Smartphone,
   CheckCircle2,
   Flame,
+  BookOpen,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Modal } from '@/components/ui/Modal';
 import { ROLE_LABELS, SHIFT_LABELS, type SessionUser } from '@/utils/roles';
 import { logoutAction, registerPasskeyAction } from '@/app/actions/auth';
+import { exportUserManualPdf } from '@/utils/pdfReport';
 import {
   createBiometricPasskey,
   getStoredBiometricInfo,
@@ -238,6 +240,20 @@ export function AppLayout({
             <span>Instalar App en Celular (PWA)</span>
           </button>
         )}
+
+        <button
+          type="button"
+          onClick={() => exportUserManualPdf()}
+          className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 transition-colors min-h-[44px] cursor-pointer"
+        >
+          <span className="flex items-center gap-2.5">
+            <BookOpen className="w-4 h-4 shrink-0" />
+            <span>Manual de Usuario (PDF)</span>
+          </span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20">
+            Descargar
+          </span>
+        </button>
 
         <button
           type="button"

@@ -164,3 +164,4 @@ Además de tener acceso completo a todos los módulos anteriores, dispone del m�
    - Si un capataz rota del Turno Mañana al Turno Noche, el Administrador pulsa **`Editar`** en su fila, cambia su *Turno Predeterminado* a `NOCHE` y guarda.
 3. **Suspender Accesos:**
    - Desmarcando la casilla *"Usuario habilitado"*, se bloquea inmediatamente el ingreso de ese usuario (tanto por contraseña como por huella digital) sin perder el historial de los partes que cargó en el pasado.
+

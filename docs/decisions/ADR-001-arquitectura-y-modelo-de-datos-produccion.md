@@ -39,3 +39,4 @@ Se requería digitalizar el proceso mediante una aplicación web responsiva e in
 ## Consecuencias y Compensaciones
 - **Beneficios:** Carga móvil rápida para el capataz, conversión automática de bancos/zorras a ladrillos/toneladas, trazabilidad en `audit_logs` y cero parpadeo visual entre temas Claro/Oscuro.
 - **Compromisos:** Requiere mantener actualizado el catálogo de ladrillos (`units_per_bench` y `units_per_wagon`) cuando se incorpore una nueva matriz/molde en fábrica.
+

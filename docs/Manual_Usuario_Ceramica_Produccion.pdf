@@ -1,0 +1,667 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 10604
+>>
+stream
+0.5670000000000001 w
+0 G
+0.09 0.09 0.11 rg
+0. 841.8899999999999864 595.2755905511811534 -79.3700787401574814 re
+f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+0.961 0.62 0.043 rg
+39.6850393700787407 813.5435433070865656 Td
+(DOCUMENTACIÓN OFICIAL DE OPERACIÓN Y FLUJO DEL SISTEMA) Tj
+ET
+BT
+/F2 15 Tf
+17.25 TL
+1. g
+39.6850393700787407 790.8663779527558972 Td
+(MANUAL DE USUARIO — CERÁMICA PRODUCCIÓN ERP) Tj
+ET
+BT
+/F1 9 Tf
+10.3499999999999996 TL
+1. g
+39.6850393700787407 773.8585039370078675 Td
+(Control de Producción por Turnos, Dashboard en Tiempo Real, PWA Móvil y Acceso con Huella) Tj
+ET
+0. G
+0.5670000000000001 w
+0. G
+0.5670000000000001 w
+0.85 0.47 0.02 rg
+0.78 G
+0. w
+0.85 0.47 0.02 rg
+39.6850393700787407 745.5120472440944468 124.7244094488189035 -27.9167322834645724 re
+f
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+1. g
+48.7559055118110294 729.2161811023621567 Td
+(1. MATRIZ DE ROLES) Tj
+ET
+0.85 0.47 0.02 rg
+0.78 G
+0. w
+0.85 0.47 0.02 rg
+164.4094488188976584 745.5120472440944468 107.7165354330708738 -27.9167322834645724 re
+f
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+1. g
+173.4803149606299542 729.2161811023621567 Td
+(DESTINATARIO) Tj
+ET
+0.85 0.47 0.02 rg
+0.78 G
+0. w
+0.85 0.47 0.02 rg
+272.1259842519685321 745.5120472440944468 283.4689763779526857 -27.9167322834645724 re
+f
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+1. g
+281.1968503937007995 729.2161811023621567 Td
+(PERMISOS Y MÓDULOS HABILITADOS) Tj
+ET
+0. G
+0.5670000000000001 w
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 717.5953149606299348 124.7244094488189035 -57.2417322834645717 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+48.7559055118110294 701.2994488188976447 Td
+(CAPATAZ DE TURNO) Tj
+T* (\(CAPATAZ\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+164.4094488188976584 717.5953149606299348 107.7165354330708738 -57.2417322834645717 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+173.4803149606299542 701.2994488188976447 Td
+(Jefes de Turno) Tj
+T* (Mañana, Tarde y Noche) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+272.1259842519685321 717.5953149606299348 283.4689763779526857 -57.2417322834645717 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+281.1968503937007995 701.2994488188976447 Td
+(Acceso a la Planilla Operativa Móvil \(/capataz\). Carga las 5 etapas) Tj
+T* (\(Extrusora, Secadero, Carga Manual/Robot, Horno, Descarga\) más) Tj
+T* (Salida en Toneladas, Gas y Viajes de Tierra. Guarda avances en vivo) Tj
+T* (y cierra su turno.) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 660.3535826771652637 124.7244094488189035 -57.2417322834645717 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+48.7559055118110294 644.0577165354329736 Td
+(INGENIERO /) Tj
+T* (ENCARGADO) Tj
+T* (\(INGENIERO_ENCARGAD) Tj
+T* (O\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+164.4094488188976584 660.3535826771652637 107.7165354330708738 -57.2417322834645717 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+173.4803149606299542 644.0577165354329736 Td
+(Jefe de Planta e) Tj
+T* (Ingenieros de) Tj
+T* (Producción) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+272.1259842519685321 660.3535826771652637 283.4689763779526857 -57.2417322834645717 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+281.1968503937007995 644.0577165354329736 Td
+(Acceso al Dashboard en Tiempo Real, Navegador por Días,) Tj
+T* (Estadísticas/Comparativas y Catálogo de Ladrillos. Puede Auditar,) Tj
+T* (Editar o Reabrir cualquier turno cerrado por un capataz.) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 603.1118503937007063 124.7244094488189035 -47.466732283464566 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+48.7559055118110294 586.8159842519684162 Td
+(DIRECTORIO / DUEÑOS) Tj
+T* (\(DIRECTORIO\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+164.4094488188976584 603.1118503937007063 107.7165354330708738 -47.466732283464566 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+173.4803149606299542 586.8159842519684162 Td
+(Socios, Dueños y) Tj
+T* (Gerencia General) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+272.1259842519685321 603.1118503937007063 283.4689763779526857 -47.466732283464566 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+281.1968503937007995 586.8159842519684162 Td
+(Acceso ejecutivo en Tiempo Real al Dashboard de Planta, Navegador) Tj
+T* (Histórico por Días, Comparador de Fechas y Descarga de Reportes) Tj
+T* (PDF \(modo lectura segura\).) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 555.6451181102362398 124.7244094488189035 -47.466732283464566 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+48.7559055118110294 539.3492519685039497 Td
+(ADMINISTRADOR) Tj
+T* (GENERAL) Tj
+T* (\(ADMIN\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+164.4094488188976584 555.6451181102362398 107.7165354330708738 -47.466732283464566 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+173.4803149606299542 539.3492519685039497 Td
+(Responsable de) Tj
+T* (Sistemas /) Tj
+T* (Administración) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+272.1259842519685321 555.6451181102362398 283.4689763779526857 -47.466732283464566 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+281.1968503937007995 539.3492519685039497 Td
+(Control total de todos los módulos del sistema más el módulo) Tj
+T* (exclusivo de Gestión de Usuarios y Roles \(/usuarios\) para altas, bajas,) Tj
+T* (contraseñas y asignación de turnos.) Tj
+ET
+0. G
+0.5670000000000001 w
+0.78 G
+0. w
+0. G
+0.5670000000000001 w
+0. G
+0.5670000000000001 w
+0. G
+0.5670000000000001 w
+0. G
+0.5670000000000001 w
+0.09 0.09 0.11 rg
+0.78 G
+0. w
+0.09 0.09 0.11 rg
+39.6850393700787407 491.1705118110236299 136.0629921259842661 -39.3925196850393746 re
+f
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+1. g
+49.6062992125984294 474.0242519685039611 Td
+(2. GUÍA PASO A PASO POR) Tj
+T* (ROL OPERATIVO) Tj
+ET
+0.09 0.09 0.11 rg
+0.78 G
+0. w
+0.09 0.09 0.11 rg
+175.748031496063021 491.1705118110236299 379.8469291338581684 -39.3925196850393746 re
+f
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+1. g
+185.6692913385826955 474.0242519685039611 Td
+(INSTRUCCIONES DETALLADAS DE USO) Tj
+ET
+0. G
+0.5670000000000001 w
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 451.7779921259842695 136.0629921259842661 -146.9175196850393661 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+49.6062992125984294 434.6317322834646575 Td
+(FLUJO DEL CAPATAZ) Tj
+T* (\(Carga en Celular\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+175.748031496063021 451.7779921259842695 379.8469291338581684 -146.9175196850393661 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+185.6692913385826955 434.6317322834646575 Td
+(Paso 1: Ingresar con su usuario o tocando "Ingresar con Huella Digital".) Tj
+T* (Paso 2: Verificar arriba la Fecha y que esté marcado su Turno \(MAÑANA, TARDE o NOCHE\).) Tj
+T* (Paso 3: Completar las 5 franjas de color idénticas a la planilla:) Tj
+T* (  • EXTRUSORA \(Verde\): Cantidad de Bancos y tipo de Ladrillo.) Tj
+T* (  • SECADERO \(Amarillo\): Cantidad de Bancos y tipo de Ladrillo.) Tj
+T* (  • CARGA DE BANCO \(Marrón\): Cantidad en fila MANUAL y cantidad en fila ROBOT + Ladrillo.) Tj
+T* (  • HORNO \(Rojo\): Cantidad de ZORRAS CARGADAS y ZORRAS FUERA + Ladrillo.) Tj
+T* (  • DESCARGA \(Gris\): Cantidad de Zorras descargadas + Ladrillo.) Tj
+T* (  * Nota: Si se cambió de molde en el turno, tocar "+ Agregar otro tipo de ladrillo".) Tj
+T* (Paso 4: Cargar Salida Material \(Toneladas\), Consumo de Gas de su turno y Viajes de Tierra) Tj
+T* (\(Negra / Roja\).) Tj
+T* (Paso 5: Tocar "Guardar Avance \(En Vivo\)" durante el turno, o "Cerrar Turno Finalizado" al) Tj
+T* (terminar.) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 304.8604724409449318 136.0629921259842661 -107.8175196850393718 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+49.6062992125984294 287.7142125984253198 Td
+(FLUJO DE DUEÑOS E) Tj
+T* (INGENIEROS) Tj
+T* (\(Dashboard y Reportes\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+175.748031496063021 304.8604724409449318 379.8469291338581684 -107.8175196850393718 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+185.6692913385826955 287.7142125984253198 Td
+(Paso 1: Al ingresar se abre el "Centro de Control de Producción" \(/dashboard\) sincronizado en) Tj
+T* (vivo.) Tj
+T* (Paso 2: Consultar las 6 tarjetas superiores \(Extrusora, Secadero, Carga, Horno, Descarga y) Tj
+T* (Gas/Tierra\) y la matriz comparativa de los 3 turnos \(Mañana, Tarde, Noche y Total Día\).) Tj
+T* (Paso 3: Usar las flechas \(< / >\), la tira rápida de días o el Calendario para viajar a cualquier) Tj
+T* (fecha pasada.) Tj
+T* (Paso 4: Pulsar "Exportar PDF" arriba a la derecha para descargar la planilla oficial del día.) Tj
+T* (Paso 5: Entrar a "Comparativas y PDF" \(/estadisticas\) para usar el Comparador Directo \(Día A) Tj
+T* (vs. Día B\) y ver eficiencia térmica \(m³ de gas por zorra y por tonelada cocida\).) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 197.0429527559055884 136.0629921259842661 -68.7175196850393775 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+49.6062992125984294 179.8966929133858912 Td
+(AUDITORÍA Y REAPERTURA) Tj
+T* (\(Encargado / Admin\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+175.748031496063021 197.0429527559055884 379.8469291338581684 -68.7175196850393775 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+185.6692913385826955 179.8966929133858912 Td
+(• Si un capataz cerró su turno y olvidó cargar un dato, el Encargado o Administrador ingresa al) Tj
+T* (Dashboard, pulsa "Auditar / Editar Turno" en la tarjeta de ese turno y luego toca el botón) Tj
+T* ("Reabrir Turno".) Tj
+T* (• Desde "Catálogo Ladrillos" \(/catalogo\) puede crear nuevas medidas o actualizar cuántos) Tj
+T* (ladrillos entran por banco/zorra y el peso unitario en kg.) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+39.6850393700787407 128.325433070866211 136.0629921259842661 -68.7175196850393775 re
+B
+BT
+/F2 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+49.6062992125984294 111.1791732283464853 Td
+(INSTALACIÓN PWA Y) Tj
+T* (HUELLA DIGITAL) Tj
+T* (\(Todos los Usuarios\)) Tj
+ET
+1. g
+0.78 G
+0.2834645669291339 w
+1. g
+175.748031496063021 128.325433070866211 379.8469291338581684 -68.7175196850393775 re
+B
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.314 g
+185.6692913385826955 111.1791732283464853 Td
+(1\) Abrir la aplicación en el celular e iniciar sesión.) Tj
+T* (2\) Abrir el menú lateral \(ícono arriba a la izquierda\) y pulsar "Instalar App en Celular \(PWA\)".) Tj
+T* (3\) Pulsar "Acceso con Huella" -> "Activar Huella Digital Ahora" y colocar el dedo en el sensor) Tj
+T* (del teléfono.) Tj
+T* (4\) Desde ese momento, al abrir la app solo deberá tocar "Ingresar con Huella Digital".) Tj
+ET
+0. G
+0.5670000000000001 w
+0.78 G
+0. w
+0. G
+0.5670000000000001 w
+0. G
+0.5670000000000001 w
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R ]
+/Count 1
+>>
+endobj
+5 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+6 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 5 0 R
+/F2 6 0 R
+/F3 7 0 R
+/F4 8 0 R
+/F5 9 0 R
+/F6 10 0 R
+/F7 11 0 R
+/F8 12 0 R
+/F9 13 0 R
+/F10 14 0 R
+/F11 15 0 R
+/F12 16 0 R
+/F13 17 0 R
+/F14 18 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+19 0 obj
+<<
+/Producer (jsPDF 3.0.4)
+/CreationDate (D:20261111190954-03'00')
+>>
+endobj
+20 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 21
+0000000000 65535 f 
+0000010809 00000 n 
+0000012626 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000010866 00000 n 
+0000010991 00000 n 
+0000011121 00000 n 
+0000011254 00000 n 
+0000011391 00000 n 
+0000011514 00000 n 
+0000011643 00000 n 
+0000011775 00000 n 
+0000011911 00000 n 
+0000012039 00000 n 
+0000012166 00000 n 
+0000012295 00000 n 
+0000012428 00000 n 
+0000012530 00000 n 
+0000012874 00000 n 
+0000012960 00000 n 
+trailer
+<<
+/Size 21
+/Root 20 0 R
+/Info 19 0 R
+/ID [ <04FA8878895BB2FE42D530D931F65681> <04FA8878895BB2FE42D530D931F65681> ]
+>>
+startxref
+13064
+%%EOF

@@ -60,3 +60,4 @@ Sistema integral web/PWA para el control operativo de producción cerámica por 
    ```bash
    npm run dev
    ```
+
