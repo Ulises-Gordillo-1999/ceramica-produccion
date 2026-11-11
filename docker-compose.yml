@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ceramica_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ceramica_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ceramica_dev_local_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-ceramica_prod_db}
+    ports:
+      - "5435:5432"
+    volumes:
+      - ceramica_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ceramica_admin} -d ${POSTGRES_DB:-ceramica_prod_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ceramica_pgdata:

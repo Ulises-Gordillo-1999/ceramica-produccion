@@ -1,0 +1,18 @@
+{
+  "name": "Cerámica Producción ERP",
+  "short_name": "Cerámica Prod",
+  "description": "Control de Producción en Planta Cerámica por Turnos",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09090b",
+  "theme_color": "#d97706",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

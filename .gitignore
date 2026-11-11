@@ -17,6 +17,8 @@ out/
 build/
 dist/
 .cache/
+*.tsbuildinfo
+next-env.d.ts
 
 # Debug logs
 npm-debug.log*
@@ -45,3 +47,4 @@ coverage/
 scratch/
 tmp/
 *.tmp
+
