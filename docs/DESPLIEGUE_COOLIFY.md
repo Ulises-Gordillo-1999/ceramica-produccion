@@ -10,23 +10,34 @@ Este documento detalla el procedimiento paso a paso para desplegar **CERÁMICA P
 
 ---
 
-## 🗄️ Paso 1: Crear el Recurso de Base de Datos (PostgreSQL 16)
+## 🗄️ Paso 1: Crear la Base de Datos Lógica en el `postgres-cluster` Compartido
 
-1. En tu Proyecto de Coolify, pulsa **`+ New Resource`**.
-2. Selecciona **`Databases`** $\rightarrow$ **`PostgreSQL`**.
-3. Configura los parámetros básicos:
-   - **Name:** `ceramica-postgres`
-   - **Database Name:** `ceramica_prod_db`
-   - **Default User:** `ceramica_admin`
-   - **Default Password:** Define una contraseña segura (o usa la generada por Coolify).
-4. Pulsa **`Start`** para levantar el contenedor de la base de datos.
-5. Copia la **Internal Database URL** que te muestra Coolify (formato `postgres://ceramica_admin:...@...:5432/ceramica_prod_db`).
+> [!IMPORTANT]
+> **Optimización de Recursos del VPS:** Siguiendo la arquitectura global del servidor, **NO crees un nuevo recurso/contenedor de PostgreSQL**. Todas las aplicaciones (`UPGRADE ERP`, `Feltrin-Gym`, `Diogo Barber Shop` y ahora `Cerámica Producción`) comparten la instancia centralizada **`postgres-cluster`** (alojada en el proyecto `UPGRADE`), ahorrando memoria RAM y manteniendo backups centralizados.
+
+1. En Coolify, ve al proyecto **`UPGRADE`** $\rightarrow$ recurso **`postgres-cluster`**.
+2. En la pestaña **`Terminal`** (o desde tu cliente PostgreSQL conectado a la VPS), abre una sesión `psql` y ejecuta:
+   ```sql
+   -- Crear usuario dedicado para la aplicación
+   CREATE USER ceramica_user WITH PASSWORD 'tu_password_segura_aqui';
+
+   -- Crear la base de datos lógica para Cerámica Producción
+   CREATE DATABASE ceramica_prod_db OWNER ceramica_user;
+
+   -- Otorgar permisos completos
+   GRANT ALL PRIVILEGES ON DATABASE ceramica_prod_db TO ceramica_user;
+   ```
+3. La URL interna para conectar la aplicación dentro de la red Docker de Coolify será:
+   ```text
+   postgresql://ceramica_user:tu_password_segura_aqui@postgres-cluster:5432/ceramica_prod_db
+   ```
+   *(O reemplaza `postgres-cluster` por el Internal Hostname / Docker Alias que Coolify muestre en la configuración de dicho recurso).*
 
 ---
 
-## 🚀 Paso 2: Crear el Recurso de la Aplicación (Next.js 16 Standalone)
+## 🚀 Paso 2: Crear el Recurso de la Aplicación en Coolify
 
-1. En el mismo Proyecto o Entorno, pulsa **`+ New Resource`**.
+1. Puedes crear un proyecto nuevo llamado **`Ceramica-Produccion`** (o dentro de tu entorno preferido) y pulsar **`+ New Resource`**.
 2. Selecciona **`Application`** $\rightarrow$ **`Public Repository`** (o GitHub Private Repository).
 3. Configuración del Repositorio:
    - **Repository URL:** `https://github.com/Ulises-Gordillo-1999/ceramica-produccion.git`
@@ -34,7 +45,7 @@ Este documento detalla el procedimiento paso a paso para desplegar **CERÁMICA P
    - **Build Pack:** **`Dockerfile`**
 4. En la configuración general de la aplicación:
    - **Port:** `3000`
-   - **Domains:** Escribe la URL HTTPS que tendrá tu aplicación (ej. `https://planta.tu-dominio.com` o el subdominio gratuito de Coolify).
+   - **Domains:** Escribe la URL HTTPS que tendrá tu aplicación (ej. `https://planta.tu-dominio.com` o el dominio asignado en Coolify).
    *(Al colocar `https://`, Coolify y Traefik gestionan automáticamente el certificado SSL gratuito con Let's Encrypt).*
 
 ---
@@ -46,9 +57,9 @@ En la pestaña **`Environment Variables`** de la aplicación, agrega:
 | Variable | Valor Recomendado | Propósito |
 | :--- | :--- | :--- |
 | `NODE_ENV` | `production` | Modo optimizado de Next.js |
-| `DATABASE_URL` | *(Pegar la Internal Database URL del Paso 1)* | Conexión directa a PostgreSQL en red interna |
-| `JWT_SECRET` | *(Generar un texto aleatorio de $\ge 32$ caracteres)* | Clave criptográfica para firmas de sesión |
-| `SEED_DEFAULT_PASSWORD` | `Ceramica2026!` *(o la que elijas)* | Contraseña inicial de los perfiles demo de planta |
+| `DATABASE_URL` | `postgresql://ceramica_user:tu_password_segura@postgres-cluster:5432/ceramica_prod_db` | Conexión interna a la BD en `postgres-cluster` |
+| `JWT_SECRET` | *(Generar un texto aleatorio seguro de $\ge 32$ caracteres)* | Clave criptográfica para firmas de sesión JWT |
+| `SEED_DEFAULT_PASSWORD` | `Ceramica2026!` *(o la que elijas)* | Contraseña inicial de los perfiles de planta |
 
 ---
 
@@ -85,3 +96,4 @@ Una vez que la aplicación y PostgreSQL estén corriendo en Coolify:
 3. Inicia sesión con cualquiera de los capataces (`capataz.manana`, `capataz.tarde`, `capataz.noche`).
 4. Abre el menú lateral, pulsa **`Acceso con Huella`** $\rightarrow$ **`Activar Huella Digital Ahora`** y apoya el dedo en el lector biométrico.
 5. Cierra sesión y prueba entrar con un solo toque tocando **`Ingresar con Huella Digital`**.
+
