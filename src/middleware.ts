@@ -10,7 +10,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api') ||
     pathname === '/manifest.webmanifest' ||
     pathname === '/icon.svg' ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname === '/sw.js'
   ) {
     return NextResponse.next();
   }
