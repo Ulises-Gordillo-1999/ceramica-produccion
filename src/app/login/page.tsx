@@ -33,6 +33,13 @@ const QUICK_PROFILES = [
     color: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
   },
   {
+    username: 'capataz.noche',
+    label: 'Capataz Noche',
+    sub: 'Miguel Sánchez (Cierre Nocturno)',
+    icon: HardHat,
+    color: 'border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
+  },
+  {
     username: 'encargado',
     label: 'Ing. / Encargado',
     sub: 'Martín Pereyra (Planta + Edición)',
