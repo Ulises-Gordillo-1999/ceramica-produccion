@@ -1,5 +1,7 @@
 import type { RoleType, ShiftType } from '@/db/schema';
 
+export type { RoleType, ShiftType };
+
 export const SESSION_COOKIE_NAME = 'ceramica_session';
 
 export interface SessionUser {
