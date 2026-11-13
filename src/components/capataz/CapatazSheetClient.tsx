@@ -190,6 +190,53 @@ export function CapatazSheetClient({
     }
   }, [initialSummary, selectedShift, defaultBrickId, user.name]);
 
+  // Sincronización automática de respaldos offline guardados en el celular
+  useEffect(() => {
+    const syncOfflineData = async () => {
+      if (typeof window === 'undefined') return;
+      const offlineKey = `ceramica_offline_${initialSummary.date}_${selectedShift}`;
+      const saved = localStorage.getItem(offlineKey);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const res = await saveShiftReportAction({
+            productionDate: data.productionDate,
+            shift: data.shift,
+            foremanName: data.foremanName,
+            status: data.status,
+            gasConsumption: Number(data.gasConsumption) || 0,
+            dispatchedTons: Number(data.dispatchedTons) || 0,
+            blackEarthTrips: Number(data.blackEarthTrips) || 0,
+            redEarthTrips: Number(data.redEarthTrips) || 0,
+            notes: data.notes || '',
+            entries: data.rows.map((r: { stage: ProductionStageType; brickTypeId: number; quantity: string }) => ({
+              stage: r.stage,
+              brickTypeId: r.brickTypeId,
+              quantity: Number(r.quantity) || 0,
+            })),
+          });
+          if (res.ok) {
+            localStorage.removeItem(offlineKey);
+            setFeedback({
+              type: 'ok',
+              text: '🟢 ¡Conexión restablecida! Los datos guardados en el celular se sincronizaron con éxito en el servidor.',
+            });
+            router.refresh();
+          }
+        } catch {
+          // Mantener en localStorage para reintentar luego
+        }
+      }
+    };
+
+    window.addEventListener('online', syncOfflineData);
+    syncOfflineData();
+
+    return () => {
+      window.removeEventListener('online', syncOfflineData);
+    };
+  }, [initialSummary.date, selectedShift, router]);
+
   const handleDateChange = (newDate: string) => {
     if (!newDate) return;
     router.push(`/capataz?date=${newDate}&shift=${selectedShift}`);
@@ -251,6 +298,9 @@ export function CapatazSheetClient({
       });
 
       if (res.ok) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(`ceramica_offline_${initialSummary.date}_${selectedShift}`);
+        }
         setFeedback({
           type: 'ok',
           text:
@@ -264,7 +314,34 @@ export function CapatazSheetClient({
         setFeedback({ type: 'err', text: res.error || 'Error al guardar el parte.' });
       }
     } catch {
-      setFeedback({ type: 'err', text: 'Error de red al guardar el parte.' });
+      if (typeof window !== 'undefined') {
+        const offlineKey = `ceramica_offline_${initialSummary.date}_${selectedShift}`;
+        const offlineData = {
+          productionDate: initialSummary.date,
+          shift: selectedShift,
+          foremanName,
+          status: targetStatus,
+          gasConsumption,
+          dispatchedTons,
+          blackEarthTrips,
+          redEarthTrips,
+          notes,
+          rows,
+          timestamp: new Date().toISOString(),
+        };
+        try {
+          localStorage.setItem(offlineKey, JSON.stringify(offlineData));
+          setFeedback({
+            type: 'ok',
+            text: '📡 Modo sin conexión: Datos guardados en la memoria de tu celular. Se sincronizarán automáticamente con el servidor al recuperar señal.',
+          });
+          setConfirmCloseOpen(false);
+        } catch {
+          setFeedback({ type: 'err', text: 'Error de conexión y memoria llena en el dispositivo.' });
+        }
+      } else {
+        setFeedback({ type: 'err', text: 'Error de red al guardar el parte.' });
+      }
     } finally {
       setSaving(false);
     }

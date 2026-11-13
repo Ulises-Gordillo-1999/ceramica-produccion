@@ -133,3 +133,4 @@ describe('📐 4. Suite de Lógica Matemática y Conversiones Industriales', () 
     assert.equal(safeNan, 0, 'Valores NaN deben normalizarse a 0');
   });
 });
+

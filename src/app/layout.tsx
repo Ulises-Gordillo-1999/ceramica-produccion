@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { PwaOfflineManager } from '@/components/pwa/PwaOfflineManager';
 
 export const metadata: Metadata = {
   title: 'CERÁMICA ERP | Control de Producción en Planta',
@@ -52,7 +53,10 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 min-h-dvh antialiased selection:bg-amber-500/20 selection:text-amber-600 dark:selection:text-amber-400 transition-colors duration-200">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <PwaOfflineManager />
+        </ThemeProvider>
       </body>
     </html>
   );
