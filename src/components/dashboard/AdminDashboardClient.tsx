@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
+  LayoutGrid,
+  Table,
 } from 'lucide-react';
 import type { DailyProductionSummary } from '@/app/actions/production';
 import type { ProductionStageType, ShiftType } from '@/db/schema';
@@ -117,6 +119,7 @@ export function AdminDashboardClient({
   const router = useRouter();
   const [liveSync, setLiveSync] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [mobileTableView, setMobileTableView] = useState<'cards' | 'table'>('cards');
 
   useEffect(() => {
     if (!liveSync) return;
@@ -412,25 +415,130 @@ export function AdminDashboardClient({
             })}
           </div>
 
-          {/* Tabla Sinóptica por Etapa Productiva */}
+          {/* Tabla Sinóptica por Etapa Productiva (Diseño Híbrido Mobile Cards + Desktop Table) */}
           <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 overflow-hidden shadow-xs">
-            <div className="px-5 py-3.5 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between">
+            <div className="px-5 py-3.5 border-b border-slate-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-amber-500" />
                 <h2 className="text-sm font-extrabold uppercase tracking-wider">
-                  Planilla Consolidada de Producción ({summary.date})
+                  Planilla Consolidada ({summary.date})
                 </h2>
               </div>
-              <span className="text-xs text-slate-500 dark:text-zinc-400">
-                Cantidad + Código de Ladrillo
-              </span>
+              
+              <div className="flex items-center justify-between sm:justify-end gap-3">
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 hidden lg:inline">
+                  Cantidad + Código de Ladrillo
+                </span>
+
+                {/* Switch de visualización en móvil */}
+                <div className="flex md:hidden items-center bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-slate-200 dark:border-zinc-700 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setMobileTableView('cards')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-bold transition-all ${
+                      mobileTableView === 'cards'
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Tarjetas</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileTableView('table')}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-bold transition-all ${
+                      mobileTableView === 'table'
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'text-slate-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    <Table className="w-3.5 h-3.5" />
+                    <span>Tabla</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+            {/* Vista 1: Tarjetas Optimizadas para Celular (< md) */}
+            {mobileTableView === 'cards' && (
+              <div className="md:hidden divide-y divide-slate-100 dark:divide-zinc-800/80">
+                {MATRIX_ROWS.map((row) => {
+                  let rowTotal = 0;
+                  if (row.stage === 'EXTRUSORA') rowTotal = summary.totals.extrusoraBenches;
+                  if (row.stage === 'SECADERO') rowTotal = summary.totals.secaderoBenches;
+                  if (row.stage === 'CARGA_MANUAL') rowTotal = summary.totals.cargaManualBenches;
+                  if (row.stage === 'CARGA_ROBOT') rowTotal = summary.totals.cargaRobotBenches;
+                  if (row.stage === 'HORNO_CARGADAS') rowTotal = summary.totals.hornoCargadasWagons;
+                  if (row.stage === 'HORNO_FUERA') rowTotal = summary.totals.hornoFueraWagons;
+                  if (row.stage === 'DESCARGA') rowTotal = summary.totals.descargaWagons;
+
+                  return (
+                    <div key={row.stage} className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${row.badgeColor}`}
+                          >
+                            {row.section}
+                          </span>
+                          <span className="font-extrabold text-sm text-slate-900 dark:text-zinc-100">
+                            {row.label}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[11px] text-slate-500 dark:text-zinc-400 mr-1">Total:</span>
+                          <span className="font-black text-sm text-slate-900 dark:text-zinc-100">
+                            {rowTotal}
+                          </span>
+                          <span className="text-[11px] font-medium text-slate-500 ml-1">
+                            {row.unit}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60">
+                          <div className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 mb-1">
+                            MAÑANA
+                          </div>
+                          <div className="min-h-[24px] flex items-center justify-center">
+                            {renderStageBadges('MANANA', row.stage)}
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60">
+                          <div className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 mb-1">
+                            TARDE
+                          </div>
+                          <div className="min-h-[24px] flex items-center justify-center">
+                            {renderStageBadges('TARDE', row.stage)}
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60">
+                          <div className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 mb-1">
+                            NOCHE
+                          </div>
+                          <div className="min-h-[24px] flex items-center justify-center">
+                            {renderStageBadges('NOCHE', row.stage)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Vista 2: Tabla Consolidada (Siempre en Desktop, o en móvil si el usuario la activa) */}
+            <div className={`overflow-x-auto ${mobileTableView === 'cards' ? 'hidden md:block' : 'block'}`}>
+              <table className="min-w-[680px] w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-950/60 text-[11px] font-extrabold uppercase text-slate-500 dark:text-zinc-400">
-                    <th className="py-3 px-4">Sector / Etapa</th>
+                    <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 dark:bg-zinc-950 border-r border-slate-200/70 dark:border-zinc-800 shadow-2xs">
+                      Sector / Etapa
+                    </th>
                     <th className="py-3 px-4">Turno Mañana</th>
                     <th className="py-3 px-4">Turno Tarde</th>
                     <th className="py-3 px-4">Turno Noche</th>
@@ -453,7 +561,7 @@ export function AdminDashboardClient({
                         key={row.stage}
                         className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 transition-colors"
                       >
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 sticky left-0 z-10 bg-white dark:bg-zinc-900 border-r border-slate-100 dark:border-zinc-800 shadow-2xs">
                           <span
                             className={`inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded mb-1 ${row.badgeColor}`}
                           >

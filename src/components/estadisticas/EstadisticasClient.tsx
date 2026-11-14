@@ -183,8 +183,8 @@ export function EstadisticasClient({
           </h1>
         </div>
 
-        <form onSubmit={handleFilter} className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-2 rounded-xl text-xs font-bold">
+        <form onSubmit={handleFilter} className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full lg:w-auto">
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-2 rounded-xl text-xs font-bold w-full sm:w-auto">
             <span className="text-slate-500">Desde:</span>
             <input
               type="date"
@@ -193,7 +193,7 @@ export function EstadisticasClient({
               className="bg-transparent text-sm font-bold focus:outline-none"
             />
           </div>
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-2 rounded-xl text-xs font-bold">
+          <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-2 rounded-xl text-xs font-bold w-full sm:w-auto">
             <span className="text-slate-500">Hasta:</span>
             <input
               type="date"
@@ -202,20 +202,22 @@ export function EstadisticasClient({
               className="bg-transparent text-sm font-bold focus:outline-none"
             />
           </div>
-          <button
-            type="submit"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white min-h-[42px] cursor-pointer"
-          >
-            Filtrar Rango
-          </button>
-          <button
-            type="button"
-            onClick={exportRangePdf}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 min-h-[42px] cursor-pointer"
-          >
-            <FileDown className="w-4 h-4" />
-            <span>Exportar PDF</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="submit"
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white min-h-[44px] cursor-pointer"
+            >
+              Filtrar Rango
+            </button>
+            <button
+              type="button"
+              onClick={exportRangePdf}
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 min-h-[44px] cursor-pointer"
+            >
+              <FileDown className="w-4 h-4" />
+              <span>Exportar PDF</span>
+            </button>
+          </div>
         </form>
       </div>
 
@@ -285,34 +287,56 @@ export function EstadisticasClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             <select
               value={dayA}
               onChange={(e) => setDayA(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700"
+              disabled={days.length === 0}
+              className="w-full sm:w-auto px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 min-h-[42px] cursor-pointer disabled:opacity-50"
             >
-              {days.map((d) => (
-                <option key={d.date} value={d.date}>
-                  Día A: {d.date}
-                </option>
-              ))}
+              {days.length === 0 ? (
+                <option value="">Día A: Sin registros</option>
+              ) : (
+                days.map((d) => (
+                  <option key={d.date} value={d.date}>
+                    Día A: {d.date}
+                  </option>
+                ))
+              )}
             </select>
-            <span className="text-xs font-bold text-slate-400">vs.</span>
+            <span className="text-xs font-bold text-slate-400 text-center">vs.</span>
             <select
               value={dayB}
               onChange={(e) => setDayB(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+              disabled={days.length === 0}
+              className="w-full sm:w-auto px-3 py-2.5 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 min-h-[42px] cursor-pointer disabled:opacity-50"
             >
-              {days.map((d) => (
-                <option key={d.date} value={d.date}>
-                  Día B: {d.date}
-                </option>
-              ))}
+              {days.length === 0 ? (
+                <option value="">Día B: Sin registros</option>
+              ) : (
+                days.map((d) => (
+                  <option key={d.date} value={d.date}>
+                    Día B: {d.date}
+                  </option>
+                ))
+              )}
             </select>
           </div>
         </div>
 
-        {dataDayA && dataDayB ? (
+        {days.length === 0 ? (
+          <div className="py-6 px-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60 text-center space-y-2">
+            <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+              <ArrowLeftRight className="w-5 h-5" />
+            </div>
+            <p className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">
+              No hay turnos registrados entre {startDate} y {endDate}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
+              Para activar el comparador directo, los capataces deben cargar partes de producción o puedes ampliar el rango de fechas en el filtro superior.
+            </p>
+          </div>
+        ) : dataDayA && dataDayB ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {[
               {
@@ -382,8 +406,8 @@ export function EstadisticasClient({
             })}
           </div>
         ) : (
-          <p className="text-xs text-slate-500">
-            Selecciona fechas con registros dentro del rango para comparar.
+          <p className="text-xs text-slate-500 text-center py-3 italic">
+            Selecciona dos fechas válidas para comparar sus métricas.
           </p>
         )}
       </div>
@@ -396,29 +420,35 @@ export function EstadisticasClient({
           </h3>
 
           <div className="space-y-3">
-            {days.map((d) => {
-              const pct = Math.min(100, Math.round((d.extrusoraBenches / maxExtrusora) * 100));
-              return (
-                <div key={d.date} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-800 dark:text-zinc-200">
-                      {d.date}
-                    </span>
-                    <span className="text-slate-500 dark:text-zinc-400">
-                      Extrusora: <strong>{d.extrusoraBenches} bancos</strong> • Horno Fuera:{' '}
-                      <strong>{d.hornoFueraWagons} zorras</strong> • Salida:{' '}
-                      <strong>{d.dispatchedTons} tn</strong>
-                    </span>
+            {days.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500 dark:text-zinc-400">
+                No hay turnos registrados en este periodo para graficar la evolución.
+              </div>
+            ) : (
+              days.map((d) => {
+                const pct = Math.min(100, Math.round((d.extrusoraBenches / maxExtrusora) * 100));
+                return (
+                  <div key={d.date} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-800 dark:text-zinc-200">
+                        {d.date}
+                      </span>
+                      <span className="text-slate-500 dark:text-zinc-400">
+                        Extrusora: <strong>{d.extrusoraBenches} bancos</strong> • Horno Fuera:{' '}
+                        <strong>{d.hornoFueraWagons} zorras</strong> • Salida:{' '}
+                        <strong>{d.dispatchedTons} tn</strong>
+                      </span>
+                    </div>
+                    <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-500 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-500 transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
