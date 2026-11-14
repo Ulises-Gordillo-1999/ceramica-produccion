@@ -68,6 +68,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [bioUser, setBioUser] = useState<string | null>(null);
+  const passwordInputRef = React.useRef<HTMLInputElement>(null);
 
   const router = useRouter();
 
@@ -97,22 +98,13 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickProfile = async (username: string) => {
+  const handleQuickProfile = (username: string) => {
     setIdentifier(username);
-    setPassword('Ceramica2026!');
-    setLoading(true);
+    setPassword('');
     setError(null);
-    try {
-      const res = await loginAction({ identifier: username, password: 'Ceramica2026!' });
-      if (res.ok) {
-        router.push(res.redirectTo || '/dashboard');
-        router.refresh();
-      } else {
-        setError(res.error || 'No se pudo ingresar.');
-      }
-    } finally {
-      setLoading(false);
-    }
+    setTimeout(() => {
+      passwordInputRef.current?.focus();
+    }, 50);
   };
 
   const handleBiometricLogin = async () => {
@@ -219,6 +211,7 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
+                  ref={passwordInputRef}
                   type="password"
                   required
                   value={password}
@@ -242,7 +235,7 @@ export default function LoginPage() {
           {/* Selector Rápido de Perfiles para Pruebas */}
           <div className="pt-4 border-t border-slate-200 dark:border-zinc-800 space-y-2.5">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 text-center">
-              Acceso Rápido por Rol (Entorno Demo)
+              Seleccionar Rol (Autocompleta el usuario — luego ingresa la clave)
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {QUICK_PROFILES.map((prof) => {

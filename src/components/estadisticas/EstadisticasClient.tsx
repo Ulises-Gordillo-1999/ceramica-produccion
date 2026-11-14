@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { seedDemoDataAction } from '@/app/actions/production';
+import { formatDateDMY, formatDateDMYHyphen } from '@/utils/dates';
 
 interface DayMetric {
   date: string;
@@ -146,7 +147,7 @@ export function EstadisticasClient({
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text(
-      `ESTADÍSTICAS Y COMPARATIVA DE PRODUCCIÓN (${startDate} a ${endDate})`,
+      `ESTADÍSTICAS Y COMPARATIVA DE PRODUCCIÓN (${formatDateDMY(startDate)} a ${formatDateDMY(endDate)})`,
       14,
       14
     );
@@ -169,7 +170,7 @@ export function EstadisticasClient({
         ],
       ],
       body: days.map((d) => [
-        d.date,
+        formatDateDMY(d.date),
         d.extrusoraBenches,
         d.secaderoBenches,
         d.cargaManualBenches,
@@ -186,7 +187,9 @@ export function EstadisticasClient({
       styles: { fontSize: 8.5 },
     });
 
-    doc.save(`estadisticas-produccion-${startDate}-a-${endDate}.pdf`);
+    doc.save(
+      `estadisticas-produccion-${formatDateDMYHyphen(startDate)}-a-${formatDateDMYHyphen(endDate)}.pdf`
+    );
   };
 
   return (
@@ -318,7 +321,7 @@ export function EstadisticasClient({
               ) : (
                 days.map((d) => (
                   <option key={d.date} value={d.date}>
-                    Día A: {d.date}
+                    Día A: {formatDateDMY(d.date)}
                   </option>
                 ))
               )}
@@ -335,7 +338,7 @@ export function EstadisticasClient({
               ) : (
                 days.map((d) => (
                   <option key={d.date} value={d.date}>
-                    Día B: {d.date}
+                    Día B: {formatDateDMY(d.date)}
                   </option>
                 ))
               )}
@@ -349,7 +352,7 @@ export function EstadisticasClient({
               <ArrowLeftRight className="w-5 h-5" />
             </div>
             <p className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">
-              No hay turnos registrados entre {startDate} y {endDate}
+              No hay turnos registrados entre {formatDateDMY(startDate)} y {formatDateDMY(endDate)}
             </p>
             <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
               Para activar el comparador directo, los capataces deben cargar partes de producción o puedes inicializar los 7 días de prueba con un solo click.
@@ -459,7 +462,7 @@ export function EstadisticasClient({
                   <div key={d.date} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-800 dark:text-zinc-200">
-                        {d.date}
+                        {formatDateDMY(d.date)}
                       </span>
                       <span className="text-slate-500 dark:text-zinc-400">
                         Extrusora: <strong>{d.extrusoraBenches} bancos</strong> • Horno Fuera:{' '}

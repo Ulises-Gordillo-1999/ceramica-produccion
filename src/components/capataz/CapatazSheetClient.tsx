@@ -28,6 +28,7 @@ import {
 } from '@/app/actions/production';
 import type { ProductionStageType, ShiftType } from '@/db/schema';
 import { SHIFT_LABELS, canEditAnyShift, type SessionUser } from '@/utils/roles';
+import { formatDateDMY } from '@/utils/dates';
 import { Modal } from '@/components/ui/Modal';
 
 interface StageRowForm {
@@ -858,7 +859,7 @@ export function CapatazSheetClient({
         <div className="sticky bottom-3 z-30 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 p-3 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="text-xs text-slate-500 dark:text-zinc-400 px-1">
             Turno: <strong className="text-slate-900 dark:text-zinc-100">{SHIFT_LABELS[selectedShift]}</strong> •{' '}
-            Fecha: <strong className="text-slate-900 dark:text-zinc-100">{initialSummary.date}</strong>
+            Fecha: <strong className="text-slate-900 dark:text-zinc-100">{formatDateDMY(initialSummary.date)}</strong>
           </div>
           <div className="flex flex-col sm:flex-row gap-2.5">
             <button
@@ -888,7 +889,7 @@ export function CapatazSheetClient({
         isOpen={confirmCloseOpen}
         onClose={() => setConfirmCloseOpen(false)}
         title="Confirmar Cierre de Turno"
-        subtitle={`Turno ${SHIFT_LABELS[selectedShift]} — Fecha ${initialSummary.date}`}
+        subtitle={`Turno ${SHIFT_LABELS[selectedShift]} — Fecha ${formatDateDMY(initialSummary.date)}`}
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-zinc-300">

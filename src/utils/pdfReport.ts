@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { DailyProductionSummary } from '@/app/actions/production';
 import type { ProductionStageType, ShiftType } from '@/db/schema';
+import { formatDateDMY, formatDateDMYHyphen } from '@/utils/dates';
 
 function formatStageCell(
   summary: DailyProductionSummary,
@@ -30,7 +31,7 @@ export function exportDailyProductionPdf(summary: DailyProductionSummary) {
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Fecha Operativa: ${summary.date}`, 14, 19);
+  doc.text(`Fecha Operativa: ${formatDateDMY(summary.date)}`, 14, 19);
   doc.text(`Generado: ${new Date().toLocaleString('es-AR')}`, 215, 19);
 
   const mRep = summary.shifts.MANANA;
@@ -132,7 +133,7 @@ export function exportDailyProductionPdf(summary: DailyProductionSummary) {
     },
   });
 
-  doc.save(`produccion-ceramica-${summary.date}.pdf`);
+  doc.save(`produccion-ceramica-${formatDateDMYHyphen(summary.date)}.pdf`);
 }
 
 export function buildUserManualPdfDoc(): jsPDF {

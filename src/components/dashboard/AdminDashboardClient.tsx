@@ -25,6 +25,7 @@ import type { DailyProductionSummary } from '@/app/actions/production';
 import type { ProductionStageType, ShiftType } from '@/db/schema';
 import { SHIFT_LABELS, canEditAnyShift, type SessionUser } from '@/utils/roles';
 import { exportDailyProductionPdf } from '@/utils/pdfReport';
+import { formatDateDMY } from '@/utils/dates';
 
 function addDays(dateStr: string, offset: number): string {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -421,7 +422,7 @@ export function AdminDashboardClient({
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-amber-500" />
                 <h2 className="text-sm font-extrabold uppercase tracking-wider">
-                  Planilla Consolidada ({summary.date})
+                  Planilla Consolidada ({formatDateDMY(summary.date)})
                 </h2>
               </div>
               
