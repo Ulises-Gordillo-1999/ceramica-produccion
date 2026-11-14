@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { eq, and, gte, lte, desc, asc, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, asc, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   brickTypes,
@@ -80,10 +80,29 @@ export async function getDailyProductionData(dateStr: string): Promise<DailyProd
     brickMap.set(b.id, b);
   }
 
-  const reports = await db
+  let reports = await db
     .select()
     .from(shiftReports)
     .where(eq(shiftReports.productionDate, dateStr));
+
+  // Si no hay reportes para el día y la base de datos está totalmente vacía, sembrar automáticamente
+  if (reports.length === 0) {
+    try {
+      const totalReports = await db.select({ count: sql<number>`count(*)` }).from(shiftReports);
+      if (Number(totalReports[0]?.count || 0) === 0) {
+        const { ensureDatabaseSeeded } = await import('@/db/autoSeed');
+        const seeded = await ensureDatabaseSeeded();
+        if (seeded) {
+          reports = await db
+            .select()
+            .from(shiftReports)
+            .where(eq(shiftReports.productionDate, dateStr));
+        }
+      }
+    } catch (err) {
+      console.warn('Auto-seed check fallback warning:', err);
+    }
+  }
 
   const reportIds = reports.map((r) => r.id);
   const rawEntries =
@@ -358,7 +377,7 @@ export async function reopenShiftReportAction(reportId: number): Promise<{
 }
 
 export async function getRangeComparisonData(startDate: string, endDate: string) {
-  const reports = await db
+  let reports = await db
     .select()
     .from(shiftReports)
     .where(
@@ -368,6 +387,31 @@ export async function getRangeComparisonData(startDate: string, endDate: string)
       )
     )
     .orderBy(asc(shiftReports.productionDate), asc(shiftReports.shift));
+
+  // Si no hay reportes y la tabla está vacía en la base de datos, sembrar automáticamente
+  if (reports.length === 0) {
+    try {
+      const totalReports = await db.select({ count: sql<number>`count(*)` }).from(shiftReports);
+      if (Number(totalReports[0]?.count || 0) === 0) {
+        const { ensureDatabaseSeeded } = await import('@/db/autoSeed');
+        const seeded = await ensureDatabaseSeeded();
+        if (seeded) {
+          reports = await db
+            .select()
+            .from(shiftReports)
+            .where(
+              and(
+                gte(shiftReports.productionDate, startDate),
+                lte(shiftReports.productionDate, endDate)
+              )
+            )
+            .orderBy(asc(shiftReports.productionDate), asc(shiftReports.shift));
+        }
+      }
+    } catch (err) {
+      console.warn('Auto-seed range check fallback warning:', err);
+    }
+  }
 
   const reportIds = reports.map((r) => r.id);
   const entries =
@@ -470,4 +514,20 @@ export async function getRangeComparisonData(startDate: string, endDate: string)
     recentLogs,
   };
 }
+
+export async function seedDemoDataAction(): Promise<{ ok: boolean; message: string }> {
+  try {
+    const { runAutoSeed } = await import('@/db/autoSeed');
+    const result = await runAutoSeed();
+    revalidatePath('/dashboard');
+    revalidatePath('/estadisticas');
+    return { ok: result.success, message: result.message };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : 'Error al inicializar datos de prueba.',
+    };
+  }
+}
+
 

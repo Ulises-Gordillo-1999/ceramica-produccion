@@ -12,7 +12,9 @@ import {
   TrendingUp,
   ArrowLeftRight,
   History,
+  Sparkles,
 } from 'lucide-react';
+import { seedDemoDataAction } from '@/app/actions/production';
 
 interface DayMetric {
   date: string;
@@ -61,6 +63,23 @@ export function EstadisticasClient({
   const prevIdx = Math.max(0, days.length - 2);
   const [dayA, setDayA] = useState(days[prevIdx]?.date || startDate);
   const [dayB, setDayB] = useState(days[lastIdx]?.date || endDate);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const handleSeedData = async () => {
+    setIsSeeding(true);
+    try {
+      const res = await seedDemoDataAction();
+      if (res.ok) {
+        router.refresh();
+      } else {
+        alert(res.message);
+      }
+    } catch {
+      alert('Error al inicializar datos.');
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const handleFilter = (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,7 +344,7 @@ export function EstadisticasClient({
         </div>
 
         {days.length === 0 ? (
-          <div className="py-6 px-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60 text-center space-y-2">
+          <div className="py-6 px-4 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60 text-center space-y-3">
             <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
               <ArrowLeftRight className="w-5 h-5" />
             </div>
@@ -333,8 +352,17 @@ export function EstadisticasClient({
               No hay turnos registrados entre {startDate} y {endDate}
             </p>
             <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
-              Para activar el comparador directo, los capataces deben cargar partes de producción o puedes ampliar el rango de fechas en el filtro superior.
+              Para activar el comparador directo, los capataces deben cargar partes de producción o puedes inicializar los 7 días de prueba con un solo click.
             </p>
+            <button
+              type="button"
+              onClick={handleSeedData}
+              disabled={isSeeding}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 text-black shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isSeeding ? '🌱 Generando 7 días de producción...' : '🌱 Cargar 7 Días de Datos de Prueba'}
+            </button>
           </div>
         ) : dataDayA && dataDayB ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
