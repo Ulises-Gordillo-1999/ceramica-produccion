@@ -17,17 +17,29 @@ import {
   Mountain,
   UserCheck,
   AlertCircle,
+  PlayCircle,
+  Eye,
+  ShieldAlert,
 } from 'lucide-react';
 import type {
   DailyProductionSummary,
   StageEntryDTO,
 } from '@/app/actions/production';
 import {
+  openShiftReportAction,
   saveShiftReportAction,
+  saveSuppliesReportAction,
   reopenShiftReportAction,
 } from '@/app/actions/production';
 import type { ProductionStageType, ShiftType } from '@/db/schema';
-import { SHIFT_LABELS, canEditAnyShift, type SessionUser } from '@/utils/roles';
+import {
+  ACTIVE_SHIFTS,
+  SHIFT_LABELS,
+  canEditAnyShift,
+  canEditProductionStages,
+  canEditSupplies,
+  type SessionUser,
+} from '@/utils/roles';
 import { formatDateDMY } from '@/utils/dates';
 import { Modal } from '@/components/ui/Modal';
 
@@ -114,7 +126,9 @@ export function CapatazSheetClient({
   initialShift: ShiftType;
 }) {
   const router = useRouter();
-  const [selectedShift, setSelectedShift] = useState<ShiftType>(initialShift);
+  const [selectedShift, setSelectedShift] = useState<ShiftType>(
+    ACTIVE_SHIFTS.includes(initialShift) ? initialShift : 'MANANA'
+  );
   const [foremanName, setForemanName] = useState(user.name);
   const [rows, setRows] = useState<StageRowForm[]>([]);
   const [gasConsumption, setGasConsumption] = useState('0');
@@ -129,9 +143,23 @@ export function CapatazSheetClient({
   const activeBricks = initialSummary.bricks.filter((b) => b.isActive);
   const defaultBrickId = activeBricks[1]?.id || activeBricks[0]?.id || 1;
   const currentReport = initialSummary.shifts[selectedShift];
+
+  const isShiftOpened = Boolean(currentReport);
   const isClosed =
     currentReport?.status === 'CERRADO' || currentReport?.status === 'AUDITADO';
-  const isReadOnly = isClosed && !canEditAnyShift(user.role);
+
+  // Permisos granulares según el rol:
+  // - CAPATAZ: Solo edita las 5 etapas productivas cuando el turno está abierto (EN_CURSO). Una vez cerrado, no puede modificar nada.
+  // - INGENIERO_ENCARGADO (Persona de Suministros): Visualiza lo que cargó el capataz y solo edita Salida de Material, Consumo de Gas y Viajes de Tierra.
+  // - ADMIN: Único rol que puede modificar un turno cerrado, reabrirlo y editar tanto etapas como suministros.
+  const isAdmin = canEditAnyShift(user.role);
+  const userCanEditStages = canEditProductionStages(user.role);
+  const userCanEditSupplies = canEditSupplies(user.role);
+
+  const stagesReadOnly =
+    !userCanEditStages || (!isAdmin && (!isShiftOpened || isClosed));
+
+  const suppliesReadOnly = !userCanEditSupplies;
 
   // Inicializar el formulario al cambiar de turno o de día
   useEffect(() => {
@@ -244,12 +272,12 @@ export function CapatazSheetClient({
   };
 
   const updateRow = (key: string, patch: Partial<StageRowForm>) => {
-    if (isReadOnly) return;
+    if (stagesReadOnly) return;
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   };
 
   const stepQuantity = (key: string, delta: number) => {
-    if (isReadOnly) return;
+    if (stagesReadOnly) return;
     setRows((prev) =>
       prev.map((r) => {
         if (r.key !== key) return r;
@@ -260,7 +288,7 @@ export function CapatazSheetClient({
   };
 
   const addExtraBrickRow = (stage: ProductionStageType) => {
-    if (isReadOnly) return;
+    if (stagesReadOnly) return;
     setRows((prev) => [
       ...prev,
       {
@@ -273,8 +301,33 @@ export function CapatazSheetClient({
   };
 
   const removeExtraBrickRow = (key: string) => {
-    if (isReadOnly) return;
+    if (stagesReadOnly) return;
     setRows((prev) => prev.filter((r) => r.key !== key));
+  };
+
+  const handleOpenShift = async () => {
+    setSaving(true);
+    setFeedback(null);
+    try {
+      const res = await openShiftReportAction({
+        productionDate: initialSummary.date,
+        shift: selectedShift,
+        foremanName: foremanName.trim() || user.name,
+      });
+      if (res.ok) {
+        setFeedback({
+          type: 'ok',
+          text: `🟢 Turno ${SHIFT_LABELS[selectedShift]} iniciado correctamente por ${foremanName.trim() || user.name}. Ya puedes cargar la producción.`,
+        });
+        router.refresh();
+      } else {
+        setFeedback({ type: 'err', text: res.error || 'No se pudo iniciar el turno.' });
+      }
+    } catch {
+      setFeedback({ type: 'err', text: 'Error de conexión al intentar abrir el turno.' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSave = async (targetStatus: 'EN_CURSO' | 'CERRADO') => {
@@ -306,8 +359,8 @@ export function CapatazSheetClient({
           type: 'ok',
           text:
             targetStatus === 'CERRADO'
-              ? '¡Turno cerrado y registrado correctamente!'
-              : 'Avance del turno guardado en tiempo real.',
+              ? '🔒 ¡Turno cerrado y registrado correctamente! Ya no admite modificaciones por capataz.'
+              : '💾 Avance del turno guardado en tiempo real.',
         });
         setConfirmCloseOpen(false);
         router.refresh();
@@ -348,13 +401,41 @@ export function CapatazSheetClient({
     }
   };
 
+  const handleSaveSuppliesOnly = async () => {
+    setSaving(true);
+    setFeedback(null);
+    try {
+      const res = await saveSuppliesReportAction({
+        productionDate: initialSummary.date,
+        shift: selectedShift,
+        gasConsumption: Number(gasConsumption) || 0,
+        dispatchedTons: Number(dispatchedTons) || 0,
+        blackEarthTrips: Number(blackEarthTrips) || 0,
+        redEarthTrips: Number(redEarthTrips) || 0,
+      });
+      if (res.ok) {
+        setFeedback({
+          type: 'ok',
+          text: `💾 Datos de Salida de Material, Consumo de Gas y Viajes de Tierra guardados para el Turno ${SHIFT_LABELS[selectedShift]}.`,
+        });
+        router.refresh();
+      } else {
+        setFeedback({ type: 'err', text: res.error || 'No se pudieron guardar los datos.' });
+      }
+    } catch {
+      setFeedback({ type: 'err', text: 'Error de conexión al guardar suministros.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleReopen = async () => {
     if (!currentReport) return;
     setSaving(true);
     const res = await reopenShiftReportAction(currentReport.id);
     setSaving(false);
     if (res.ok) {
-      setFeedback({ type: 'ok', text: 'Turno reabierto para edición.' });
+      setFeedback({ type: 'ok', text: '🔓 Turno reabierto por Administrador para edición.' });
       router.refresh();
     } else {
       setFeedback({ type: 'err', text: res.error || 'No se pudo reabrir.' });
@@ -362,20 +443,22 @@ export function CapatazSheetClient({
   };
 
   return (
-    <div className="space-y-5 pb-20">
-      {/* Cabecera y Navegador de Fecha + Turno */}
+    <div className="space-y-5 pb-24">
+      {/* Cabecera y Navegador de Fecha + Turno (Mañana / Tarde) */}
       <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Planilla Operativa Móvil
+              {user.role === 'INGENIERO_ENCARGADO'
+                ? 'Visualización de Turno y Carga de Salida / Gas / Tierra'
+                : 'Planilla Operativa de Planta'}
             </span>
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-zinc-100">
-              PRODUCCIÓN POR TURNO
+              PRODUCCIÓN POR TURNO ({formatDateDMY(initialSummary.date)})
             </h1>
           </div>
 
-          {/* Selector de Fecha (Time-Travel) */}
+          {/* Selector de Fecha */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800/90 p-1.5 rounded-xl border border-slate-200 dark:border-zinc-700">
             <button
               type="button"
@@ -405,14 +488,14 @@ export function CapatazSheetClient({
           </div>
         </div>
 
-        {/* Selector de Turno (MAÑANA / TARDE / NOCHE) + CAPATAZ */}
+        {/* Selector de los 2 Turnos (MAÑANA y TARDE) + CAPATAZ */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 pt-2 border-t border-slate-200/80 dark:border-zinc-800">
           <div className="lg:col-span-6">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1.5">
-              TURNO DE PLANTA
+              SELECCIONAR TURNO (MAÑANA / TARDE)
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['MANANA', 'TARDE', 'NOCHE'] as ShiftType[]).map((sh) => {
+            <div className="grid grid-cols-2 gap-2.5">
+              {ACTIVE_SHIFTS.map((sh) => {
                 const active = selectedShift === sh;
                 const rep = initialSummary.shifts[sh];
                 return (
@@ -420,15 +503,15 @@ export function CapatazSheetClient({
                     key={sh}
                     type="button"
                     onClick={() => setSelectedShift(sh)}
-                    className={`flex flex-col items-center justify-center py-2.5 px-3 rounded-xl border font-bold text-xs sm:text-sm transition-all min-h-[48px] cursor-pointer ${
+                    className={`flex flex-col items-center justify-center py-3 px-4 rounded-xl border font-bold text-xs sm:text-sm transition-all min-h-[52px] cursor-pointer ${
                       active
                         ? 'bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/20'
                         : 'bg-slate-50 dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800'
                     }`}
                   >
-                    <span>{SHIFT_LABELS[sh]}</span>
+                    <span>TURNO {SHIFT_LABELS[sh]}</span>
                     <span
-                      className={`text-[10px] font-semibold mt-0.5 ${
+                      className={`text-[11px] font-semibold mt-0.5 ${
                         active
                           ? 'text-amber-100'
                           : rep?.status === 'CERRADO' || rep?.status === 'AUDITADO'
@@ -438,7 +521,11 @@ export function CapatazSheetClient({
                           : 'text-slate-400'
                       }`}
                     >
-                      {rep ? (rep.status === 'EN_CURSO' ? '● En Curso' : '✓ Cerrado') : 'Sin iniciar'}
+                      {rep
+                        ? rep.status === 'EN_CURSO'
+                          ? `● En Curso (${rep.foremanName})`
+                          : `✓ Cerrado (${rep.foremanName})`
+                        : '○ Sin iniciar'}
                     </span>
                   </button>
                 );
@@ -449,34 +536,103 @@ export function CapatazSheetClient({
           <div className="lg:col-span-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
             <div className="flex-1">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-1.5">
-                CAPATAZ RESPONSABLE
+                CAPATAZ EN TURNO
               </label>
               <div className="relative">
                 <UserCheck className="w-4 h-4 text-amber-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  disabled={isReadOnly}
+                  disabled={!userCanEditStages || (isClosed && !isAdmin)}
                   value={foremanName}
                   onChange={(e) => setForemanName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-base font-bold bg-amber-50/70 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-slate-900 dark:text-zinc-100 min-h-[48px]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-base font-bold bg-amber-50/70 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-slate-900 dark:text-zinc-100 min-h-[52px] disabled:opacity-70"
                 />
               </div>
             </div>
 
-            {isClosed && canEditAnyShift(user.role) && (
+            {isClosed && isAdmin && (
               <button
                 type="button"
                 onClick={handleReopen}
                 disabled={saving}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 min-h-[48px] cursor-pointer"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 min-h-[52px] cursor-pointer"
               >
                 <Unlock className="w-4 h-4" />
-                <span>Reabrir Turno</span>
+                <span>Reabrir Turno (Admin)</span>
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* PANEL DE APERTURA DE TURNO: Cuando el turno seleccionado aún no fue iniciado */}
+      {!isShiftOpened && userCanEditStages && (
+        <div className="rounded-2xl bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-transparent border-2 border-amber-500/50 p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-amber-500 text-slate-950">
+                <PlayCircle className="w-4 h-4" />
+                <span>Apertura de Turno Requerida</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-zinc-100">
+                ¿Vas a iniciar el TURNO {SHIFT_LABELS[selectedShift]} del día {formatDateDMY(initialSummary.date)}?
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 max-w-2xl">
+                Como los capataces rotan entre turnos, verifica que arriba esté seleccionado{' '}
+                <strong>TURNO MAÑANA</strong> o <strong>TURNO TARDE</strong> según corresponda y presiona{' '}
+                <strong>&ldquo;Abrir / Iniciar Turno&rdquo;</strong> para habilitar la carga de producción.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenShift}
+              disabled={saving}
+              className="flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-extrabold text-sm sm:text-base bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white shadow-lg shadow-amber-600/25 transition-all min-h-[54px] shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              <PlayCircle className="w-5 h-5" />
+              <span>
+                {saving
+                  ? 'Iniciando turno...'
+                  : `Abrir / Iniciar Turno ${SHIFT_LABELS[selectedShift]}`}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BANNER DE TURNO CERRADO (Inmutable para Capataz, editable solo por Administrador) */}
+      {isClosed && (
+        <div className="rounded-2xl bg-slate-100 dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">
+                Turno {SHIFT_LABELS[selectedShift]} Cerrado — Capataz: {currentReport?.foremanName}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                {isAdmin
+                  ? 'Como Administrador General tienes permisos para editar directamente o reabrir el turno.'
+                  : 'Este turno ya fue cerrado y no permite modificaciones de etapas. Solo el Administrador puede modificarlo.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BANNER INFORMATIVO PARA LA PERSONA QUE CARGA SALIDA, GAS Y TIERRA */}
+      {user.role === 'INGENIERO_ENCARGADO' && (
+        <div className="rounded-2xl bg-blue-500/10 border border-blue-500/30 p-4 flex items-center gap-3 text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+          <Eye className="w-5 h-5 text-blue-500 shrink-0" />
+          <div>
+            <strong>Modo Visualización y Carga de Suministros:</strong> A la izquierda puedes
+            visualizar todos los datos de producción cargados por el Capataz, y a la derecha tienes
+            habilitada la carga de <strong>Salida de Material, Consumo de Gas y Viajes de Tierra</strong>.
+          </div>
+        </div>
+      )}
 
       {feedback && (
         <div
@@ -497,8 +653,23 @@ export function CapatazSheetClient({
 
       {/* Grilla Principal Idéntica a la Planilla: Izquierda 5 Etapas (8 cols) | Derecha Salida, Gas y Tierra (4 cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-        {/* BLOQUE IZQUIERDO: LAS 5 ETAPAS DE LÍNEA */}
-        <div className="xl:col-span-8 space-y-4">
+        {/* BLOQUE IZQUIERDO: LAS 5 ETAPAS DE LÍNEA (CARGA DEL CAPATAZ) */}
+        <div
+          className={`xl:col-span-8 space-y-4 transition-opacity ${
+            !isShiftOpened && user.role === 'CAPATAZ' ? 'opacity-60 pointer-events-none' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+              1. Etapas de Producción (Carga del Capataz)
+            </span>
+            {stagesReadOnly && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
+                <Lock className="w-3 h-3" /> Solo lectura
+              </span>
+            )}
+          </div>
+
           {STAGE_SECTIONS.map((section) => (
             <div
               key={section.id}
@@ -537,7 +708,7 @@ export function CapatazSheetClient({
                             key={row.key}
                             className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-slate-50/70 dark:bg-zinc-950/60 p-3 rounded-xl border border-slate-200/70 dark:border-zinc-800/80"
                           >
-                            {/* Etiqueta de Cantidad (ej. CANTIDAD DE BANCOS / MANUAL / ROBOT / ZORRAS) */}
+                            {/* Etiqueta de Cantidad */}
                             <div className="sm:col-span-6 space-y-1.5">
                               <div className="flex items-center justify-between">
                                 <label className="text-xs font-extrabold uppercase tracking-wide text-slate-700 dark:text-zinc-200">
@@ -553,7 +724,7 @@ export function CapatazSheetClient({
                               <div className="flex items-center gap-1.5">
                                 <button
                                   type="button"
-                                  disabled={isReadOnly}
+                                  disabled={stagesReadOnly}
                                   onClick={() => stepQuantity(row.key, -1)}
                                   className="w-11 h-11 rounded-xl font-extrabold text-lg bg-slate-200/80 dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 hover:bg-slate-300 dark:hover:bg-zinc-700 shrink-0 cursor-pointer disabled:opacity-40"
                                 >
@@ -564,7 +735,7 @@ export function CapatazSheetClient({
                                   inputMode="decimal"
                                   min="0"
                                   step="any"
-                                  disabled={isReadOnly}
+                                  disabled={stagesReadOnly}
                                   value={row.quantity}
                                   onChange={(e) =>
                                     updateRow(row.key, { quantity: e.target.value })
@@ -573,7 +744,7 @@ export function CapatazSheetClient({
                                 />
                                 <button
                                   type="button"
-                                  disabled={isReadOnly}
+                                  disabled={stagesReadOnly}
                                   onClick={() => stepQuantity(row.key, 1)}
                                   className="w-11 h-11 rounded-xl font-extrabold text-lg bg-slate-200/80 dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 hover:bg-slate-300 dark:hover:bg-zinc-700 shrink-0 cursor-pointer disabled:opacity-40"
                                 >
@@ -581,7 +752,7 @@ export function CapatazSheetClient({
                                 </button>
                                 <button
                                   type="button"
-                                  disabled={isReadOnly}
+                                  disabled={stagesReadOnly}
                                   onClick={() => stepQuantity(row.key, 5)}
                                   className="px-2.5 h-11 rounded-xl font-bold text-xs bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0 cursor-pointer disabled:opacity-40"
                                 >
@@ -596,7 +767,7 @@ export function CapatazSheetClient({
                                 <label className="text-xs font-extrabold uppercase tracking-wide text-slate-700 dark:text-zinc-200">
                                   LADRILLO
                                 </label>
-                                {idx > 0 && !isReadOnly && (
+                                {idx > 0 && !stagesReadOnly && (
                                   <button
                                     type="button"
                                     onClick={() => removeExtraBrickRow(row.key)}
@@ -608,7 +779,7 @@ export function CapatazSheetClient({
                               </div>
 
                               <select
-                                disabled={isReadOnly}
+                                disabled={stagesReadOnly}
                                 value={row.brickTypeId}
                                 onChange={(e) =>
                                   updateRow(row.key, {
@@ -632,7 +803,7 @@ export function CapatazSheetClient({
                         );
                       })}
 
-                      {!isReadOnly && (
+                      {!stagesReadOnly && (
                         <div className="flex justify-end">
                           <button
                             type="button"
@@ -650,10 +821,40 @@ export function CapatazSheetClient({
               </div>
             </div>
           ))}
+
+          {/* OBSERVACIONES DEL TURNO (Cargadas por el Capataz) */}
+          <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 space-y-2 shadow-xs">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-zinc-400">
+              Novedades / Observaciones del Capataz
+            </label>
+            <textarea
+              rows={3}
+              disabled={stagesReadOnly}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Ej: Cambio de molde a las 10:30hs, parada de 15 min en cortadora..."
+              className="w-full p-3 rounded-xl text-base bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-70"
+            />
+          </div>
         </div>
 
-        {/* BLOQUE DERECHO: SALIDA MATERIAL, CONSUMO DE GAS Y VIAJES TIERRA */}
+        {/* BLOQUE DERECHO: SALIDA MATERIAL, CONSUMO DE GAS Y VIAJES TIERRA (CARGA DE LA OTRA PERSONA / ADMIN) */}
         <div className="xl:col-span-4 space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+              2. Salida, Gas y Tierra
+            </span>
+            {suppliesReadOnly ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
+                <ShieldAlert className="w-3 h-3 text-amber-500" /> Carga Encargado / Admin
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                <CheckCircle2 className="w-3 h-3" /> Habilitado para carga
+              </span>
+            )}
+          </div>
+
           {/* 1. SALIDA MATERIAL */}
           <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
             <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
@@ -670,10 +871,10 @@ export function CapatazSheetClient({
                   inputMode="decimal"
                   min="0"
                   step="0.1"
-                  disabled={isReadOnly}
+                  disabled={suppliesReadOnly}
                   value={dispatchedTons}
                   onChange={(e) => setDispatchedTons(e.target.value)}
-                  className="w-36 text-right font-extrabold text-lg py-2 px-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[44px]"
+                  className="w-36 text-right font-extrabold text-lg py-2 px-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[44px] disabled:opacity-60"
                 />
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex justify-between pt-2 border-t border-slate-100 dark:border-zinc-800">
@@ -685,21 +886,19 @@ export function CapatazSheetClient({
             </div>
           </div>
 
-          {/* 2. CONSUMO DE GAS */}
+          {/* 2. CONSUMO DE GAS (SOLO TURNO MAÑANA Y TURNO TARDE) */}
           <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
             <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
               <span>CONSUMO DE GAS</span>
               <Flame className="w-4 h-4 text-orange-500" />
             </div>
             <div className="p-4 space-y-3">
-              {(['MANANA', 'TARDE', 'NOCHE'] as ShiftType[]).map((sh) => {
+              {ACTIVE_SHIFTS.map((sh) => {
                 const isCurrentShift = sh === selectedShift;
                 const otherVal =
                   sh === 'MANANA'
                     ? initialSummary.totals.gasManana
-                    : sh === 'TARDE'
-                    ? initialSummary.totals.gasTarde
-                    : initialSummary.totals.gasNoche;
+                    : initialSummary.totals.gasTarde;
 
                 return (
                   <div
@@ -727,10 +926,10 @@ export function CapatazSheetClient({
                         inputMode="decimal"
                         min="0"
                         step="any"
-                        disabled={isReadOnly}
+                        disabled={suppliesReadOnly}
                         value={gasConsumption}
                         onChange={(e) => setGasConsumption(e.target.value)}
-                        className="w-32 text-right font-extrabold text-lg py-1.5 px-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-amber-500 text-slate-900 dark:text-zinc-100 focus:outline-none min-h-[44px]"
+                        className="w-32 text-right font-extrabold text-lg py-1.5 px-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-amber-500 text-slate-900 dark:text-zinc-100 focus:outline-none min-h-[44px] disabled:opacity-60"
                       />
                     ) : (
                       <span className="font-bold text-base px-3 py-1.5 text-slate-600 dark:text-zinc-400">
@@ -764,7 +963,7 @@ export function CapatazSheetClient({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    disabled={isReadOnly}
+                    disabled={suppliesReadOnly}
                     onClick={() =>
                       setBlackEarthTrips(
                         String(Math.max(0, (Number(blackEarthTrips) || 0) - 1))
@@ -778,14 +977,14 @@ export function CapatazSheetClient({
                     type="number"
                     inputMode="numeric"
                     min="0"
-                    disabled={isReadOnly}
+                    disabled={suppliesReadOnly}
                     value={blackEarthTrips}
                     onChange={(e) => setBlackEarthTrips(e.target.value)}
-                    className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px]"
+                    className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px] disabled:opacity-60"
                   />
                   <button
                     type="button"
-                    disabled={isReadOnly}
+                    disabled={suppliesReadOnly}
                     onClick={() =>
                       setBlackEarthTrips(String((Number(blackEarthTrips) || 0) + 1))
                     }
@@ -803,7 +1002,7 @@ export function CapatazSheetClient({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    disabled={isReadOnly}
+                    disabled={suppliesReadOnly}
                     onClick={() =>
                       setRedEarthTrips(
                         String(Math.max(0, (Number(redEarthTrips) || 0) - 1))
@@ -817,14 +1016,14 @@ export function CapatazSheetClient({
                     type="number"
                     inputMode="numeric"
                     min="0"
-                    disabled={isReadOnly}
+                    disabled={suppliesReadOnly}
                     value={redEarthTrips}
                     onChange={(e) => setRedEarthTrips(e.target.value)}
-                    className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px]"
+                    className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px] disabled:opacity-60"
                   />
                   <button
                     type="button"
-                    disabled={isReadOnly}
+                    disabled={suppliesReadOnly}
                     onClick={() =>
                       setRedEarthTrips(String((Number(redEarthTrips) || 0) + 1))
                     }
@@ -837,25 +1036,27 @@ export function CapatazSheetClient({
             </div>
           </div>
 
-          {/* 4. OBSERVACIONES DEL TURNO */}
-          <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 space-y-2 shadow-xs">
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-zinc-400">
-              Novedades / Observaciones del Turno
-            </label>
-            <textarea
-              rows={3}
-              disabled={isReadOnly}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ej: Cambio de molde a las 10:30hs, parada de 15 min en cortadora..."
-              className="w-full p-3 rounded-xl text-base bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
+          {/* Botón directo para guardar Salida, Gas y Tierra cuando ingresa la persona encargada */}
+          {!suppliesReadOnly && (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSaveSuppliesOnly}
+              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-extrabold text-sm bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-md shadow-amber-600/20 min-h-[48px] cursor-pointer disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              <span>
+                {saving
+                  ? 'Guardando...'
+                  : `Guardar Salida, Gas y Tierra (${SHIFT_LABELS[selectedShift]})`}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Barra Flotante de Acciones del Capataz */}
-      {!isReadOnly && (
+      {/* Barra Flotante Inferior: Para el Capataz (cuando el turno fue iniciado y no está cerrado) o Admin */}
+      {!stagesReadOnly && (
         <div className="sticky bottom-3 z-30 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-slate-200 dark:border-zinc-800 p-3 shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="text-xs text-slate-500 dark:text-zinc-400 px-1">
             Turno: <strong className="text-slate-900 dark:text-zinc-100">{SHIFT_LABELS[selectedShift]}</strong> •{' '}
@@ -893,8 +1094,9 @@ export function CapatazSheetClient({
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-zinc-300">
-            Al cerrar el turno, los datos quedarán firmes en el historial de planta para los ingenieros y dueños.
-            ¿Confirmas que todos los bancos, zorras y lecturas de gas están cargados?
+            Al cerrar el turno, los datos de las 5 etapas quedarán firmes y{' '}
+            <strong>no podrán ser modificados por el capataz</strong> (solo el Administrador podrá
+            editarlos). ¿Confirmas el cierre del Turno {SHIFT_LABELS[selectedShift]}?
           </p>
           <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
             <button

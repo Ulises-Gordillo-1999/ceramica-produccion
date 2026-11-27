@@ -23,7 +23,13 @@ import {
 } from 'lucide-react';
 import type { DailyProductionSummary } from '@/app/actions/production';
 import type { ProductionStageType, ShiftType } from '@/db/schema';
-import { SHIFT_LABELS, canEditAnyShift, type SessionUser } from '@/utils/roles';
+import {
+  ACTIVE_SHIFTS,
+  SHIFT_LABELS,
+  canEditAnyShift,
+  canEditSupplies,
+  type SessionUser,
+} from '@/utils/roles';
 import { exportDailyProductionPdf } from '@/utils/pdfReport';
 import { formatDateDMY } from '@/utils/dates';
 
@@ -142,9 +148,12 @@ export function AdminDashboardClient({
   };
 
   const quickDays = getRecent7Days(summary.date);
-  const loadedShiftsCount = (['MANANA', 'TARDE', 'NOCHE'] as ShiftType[]).filter(
+  const loadedShiftsCount = ACTIVE_SHIFTS.filter(
     (s) => summary.shifts[s] !== null
   ).length;
+
+  const isAdmin = canEditAnyShift(user.role);
+  const userCanEditSupplies = canEditSupplies(user.role);
 
   const renderStageBadges = (shift: ShiftType, stage: ProductionStageType) => {
     const rep = summary.shifts[shift];
@@ -183,7 +192,7 @@ export function AdminDashboardClient({
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Tiempo Real ({loadedShiftsCount}/3 turnos registrados)
+                Tiempo Real ({loadedShiftsCount}/2 turnos registrados)
               </span>
               <button
                 type="button"
@@ -358,13 +367,13 @@ export function AdminDashboardClient({
         </div>
       </div>
 
-      {/* Grilla Central: Matriz de los 3 Turnos (8 cols) + Bloque Derecho Salida/Gas/Tierra (4 cols) */}
+      {/* Grilla Central: Matriz de los 2 Turnos (8 cols) + Bloque Derecho Salida/Gas/Tierra (4 cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-        {/* BLOQUE IZQUIERDO: MATRIZ DE LOS 3 TURNOS */}
+        {/* BLOQUE IZQUIERDO: MATRIZ DE LOS 2 TURNOS (MAÑANA Y TARDE) */}
         <div className="xl:col-span-8 space-y-4">
           {/* Tarjetas de Estado de cada Turno y su Capataz */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {(['MANANA', 'TARDE', 'NOCHE'] as ShiftType[]).map((sh) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {ACTIVE_SHIFTS.map((sh) => {
               const rep = summary.shifts[sh];
               return (
                 <div
@@ -388,12 +397,12 @@ export function AdminDashboardClient({
                         )
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500">
-                          <AlertTriangle className="w-3 h-3" /> Pendiente
+                          <AlertTriangle className="w-3 h-3" /> Sin iniciar
                         </span>
                       )}
                     </div>
                     <p className="text-sm font-bold text-slate-900 dark:text-zinc-100 mt-1 truncate">
-                      {rep ? rep.foremanName : 'Sin capataz registrado'}
+                      {rep ? rep.foremanName : 'Pendiente de inicio por Capataz'}
                     </p>
                     {rep?.notes && (
                       <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 line-clamp-2">
@@ -402,13 +411,19 @@ export function AdminDashboardClient({
                     )}
                   </div>
 
-                  {canEditAnyShift(user.role) && (
+                  {(isAdmin || userCanEditSupplies) && (
                     <Link
                       href={`/capataz?date=${summary.date}&shift=${sh}`}
                       className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 dark:bg-zinc-800 hover:bg-amber-500/15 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      <span>{rep ? 'Auditar / Editar Turno' : 'Cargar Turno'}</span>
+                      <span>
+                        {isAdmin
+                          ? rep
+                            ? 'Modificar / Reabrir Turno (Admin)'
+                            : 'Abrir / Cargar Turno (Admin)'
+                          : 'Ver Turno y Cargar Salida / Gas / Tierra'}
+                      </span>
                     </Link>
                   )}
                 </div>
@@ -425,7 +440,7 @@ export function AdminDashboardClient({
                   Planilla Consolidada ({formatDateDMY(summary.date)})
                 </h2>
               </div>
-              
+
               <div className="flex items-center justify-between sm:justify-end gap-3">
                 <span className="text-[11px] text-slate-500 dark:text-zinc-400 hidden lg:inline">
                   Cantidad + Código de Ladrillo
@@ -498,10 +513,10 @@ export function AdminDashboardClient({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="grid grid-cols-2 gap-2.5 text-center">
                         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60">
                           <div className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 mb-1">
-                            MAÑANA
+                            TURNO MAÑANA
                           </div>
                           <div className="min-h-[24px] flex items-center justify-center">
                             {renderStageBadges('MANANA', row.stage)}
@@ -510,19 +525,10 @@ export function AdminDashboardClient({
 
                         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60">
                           <div className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 mb-1">
-                            TARDE
+                            TURNO TARDE
                           </div>
                           <div className="min-h-[24px] flex items-center justify-center">
                             {renderStageBadges('TARDE', row.stage)}
-                          </div>
-                        </div>
-
-                        <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800/60">
-                          <div className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 mb-1">
-                            NOCHE
-                          </div>
-                          <div className="min-h-[24px] flex items-center justify-center">
-                            {renderStageBadges('NOCHE', row.stage)}
                           </div>
                         </div>
                       </div>
@@ -534,7 +540,7 @@ export function AdminDashboardClient({
 
             {/* Vista 2: Tabla Consolidada (Siempre en Desktop, o en móvil si el usuario la activa) */}
             <div className={`overflow-x-auto ${mobileTableView === 'cards' ? 'hidden md:block' : 'block'}`}>
-              <table className="min-w-[680px] w-full text-left border-collapse">
+              <table className="min-w-[560px] w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-950/60 text-[11px] font-extrabold uppercase text-slate-500 dark:text-zinc-400">
                     <th className="py-3 px-4 sticky left-0 z-20 bg-slate-50 dark:bg-zinc-950 border-r border-slate-200/70 dark:border-zinc-800 shadow-2xs">
@@ -542,7 +548,6 @@ export function AdminDashboardClient({
                     </th>
                     <th className="py-3 px-4">Turno Mañana</th>
                     <th className="py-3 px-4">Turno Tarde</th>
-                    <th className="py-3 px-4">Turno Noche</th>
                     <th className="py-3 px-4 text-right">Total Día</th>
                   </tr>
                 </thead>
@@ -578,9 +583,6 @@ export function AdminDashboardClient({
                         <td className="py-3.5 px-4">
                           {renderStageBadges('TARDE', row.stage)}
                         </td>
-                        <td className="py-3.5 px-4">
-                          {renderStageBadges('NOCHE', row.stage)}
-                        </td>
                         <td className="py-3.5 px-4 text-right font-extrabold text-slate-900 dark:text-zinc-100">
                           {rowTotal}{' '}
                           <span className="text-xs font-normal text-slate-500">
@@ -614,7 +616,7 @@ export function AdminDashboardClient({
             </div>
           </div>
 
-          {/* CONSUMO DE GAS */}
+          {/* CONSUMO DE GAS (SOLO TURNO MAÑANA Y TURNO TARDE) */}
           <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
             <div className="px-4 py-3 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm uppercase tracking-wider flex items-center justify-between">
               <span>CONSUMO DE GAS</span>
@@ -635,14 +637,6 @@ export function AdminDashboardClient({
                 </span>
                 <span className="text-base font-extrabold">
                   {summary.totals.gasTarde.toLocaleString('es-AR')} m³
-                </span>
-              </div>
-              <div className="flex items-center justify-between pt-3">
-                <span className="text-xs font-extrabold uppercase text-slate-700 dark:text-zinc-300">
-                  TURNO NOCHE
-                </span>
-                <span className="text-base font-extrabold">
-                  {summary.totals.gasNoche.toLocaleString('es-AR')} m³
                 </span>
               </div>
               <div className="flex items-center justify-between pt-3 text-amber-600 dark:text-amber-400">

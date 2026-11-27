@@ -13,7 +13,12 @@ import {
   type ProductionStageType,
   type BrickType,
 } from '@/db/schema';
-import { getSession, canEditAnyShift } from '@/utils/auth';
+import {
+  getSession,
+  canEditAnyShift,
+  canEditProductionStages,
+  canEditSupplies,
+} from '@/utils/auth';
 
 export interface StageEntryDTO {
   id?: number;
@@ -83,7 +88,12 @@ export async function getDailyProductionData(dateStr: string): Promise<DailyProd
   let reports = await db
     .select()
     .from(shiftReports)
-    .where(eq(shiftReports.productionDate, dateStr));
+    .where(
+      and(
+        eq(shiftReports.productionDate, dateStr),
+        inArray(shiftReports.shift, ['MANANA', 'TARDE'])
+      )
+    );
 
   // Si no hay reportes para el día y la base de datos está totalmente vacía, sembrar automáticamente
   if (reports.length === 0) {
@@ -96,7 +106,12 @@ export async function getDailyProductionData(dateStr: string): Promise<DailyProd
           reports = await db
             .select()
             .from(shiftReports)
-            .where(eq(shiftReports.productionDate, dateStr));
+            .where(
+              and(
+                eq(shiftReports.productionDate, dateStr),
+                inArray(shiftReports.shift, ['MANANA', 'TARDE'])
+              )
+            );
         }
       }
     } catch (err) {
@@ -213,6 +228,72 @@ export async function getDailyProductionData(dateStr: string): Promise<DailyProd
   };
 }
 
+export async function openShiftReportAction(input: {
+  productionDate: string;
+  shift: ShiftType;
+  foremanName: string;
+}): Promise<{ ok: boolean; error?: string; reportId?: number }> {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false, error: 'Debes iniciar sesión para abrir un turno.' };
+  }
+
+  if (!canEditProductionStages(session.role)) {
+    return {
+      ok: false,
+      error: 'Solo el Capataz en turno o el Administrador pueden abrir o iniciar un turno.',
+    };
+  }
+
+  const [existing] = await db
+    .select()
+    .from(shiftReports)
+    .where(
+      and(
+        eq(shiftReports.productionDate, input.productionDate),
+        eq(shiftReports.shift, input.shift)
+      )
+    )
+    .limit(1);
+
+  if (existing) {
+    return { ok: true, reportId: existing.id };
+  }
+
+  const cleanForeman = input.foremanName.trim() || session.name;
+
+  const [created] = await db
+    .insert(shiftReports)
+    .values({
+      productionDate: input.productionDate,
+      shift: input.shift,
+      foremanId: session.id,
+      foremanName: cleanForeman,
+      status: 'EN_CURSO',
+      gasConsumption: 0,
+      dispatchedTons: 0,
+      blackEarthTrips: 0,
+      redEarthTrips: 0,
+      notes: '',
+      closedAt: null,
+    })
+    .returning();
+
+  await db.insert(auditLogs).values({
+    userId: session.id,
+    userName: session.name,
+    action: 'OPEN_SHIFT',
+    entity: 'SHIFT_REPORT',
+    details: `Apertura de Turno ${input.shift} | Fecha ${input.productionDate} | Capataz: ${cleanForeman}`,
+  });
+
+  revalidatePath('/capataz');
+  revalidatePath('/dashboard');
+  revalidatePath('/estadisticas');
+
+  return { ok: true, reportId: created.id };
+}
+
 export async function saveShiftReportAction(input: {
   productionDate: string;
   shift: ShiftType;
@@ -234,8 +315,11 @@ export async function saveShiftReportAction(input: {
     return { ok: false, error: 'Debes iniciar sesión para guardar el parte.' };
   }
 
-  if (session.role === 'DIRECTORIO') {
-    return { ok: false, error: 'El rol Directorio es de consulta y no modifica partes.' };
+  if (!canEditProductionStages(session.role)) {
+    return {
+      ok: false,
+      error: 'No tienes permisos para modificar las etapas de producción del capataz.',
+    };
   }
 
   const [existing] = await db
@@ -257,17 +341,28 @@ export async function saveShiftReportAction(input: {
     return {
       ok: false,
       error:
-        'Este turno ya fue cerrado. Solicita al Encargado o Ingeniero reabrirlo si necesitas corregir un dato.',
+        'Este turno ya fue cerrado y no se puede modificar. El único que puede modificar un turno cerrado es el Administrador.',
     };
   }
 
   const allBricks = await db.select().from(brickTypes);
   const brickMap = new Map(allBricks.map((b) => [b.id, b]));
 
-  const cleanGas = Math.max(0, Number(input.gasConsumption) || 0);
-  const cleanTons = Math.max(0, Number(input.dispatchedTons) || 0);
-  const cleanBlack = Math.max(0, Math.round(Number(input.blackEarthTrips) || 0));
-  const cleanRed = Math.max(0, Math.round(Number(input.redEarthTrips) || 0));
+  // Solo quien tiene permiso de suministros (o ADMIN) actualiza Salida, Gas y Tierra;
+  // el Capataz preserva los valores existentes para no pisar la carga de la otra persona.
+  const userCanEditSupplies = canEditSupplies(session.role);
+  const cleanGas = userCanEditSupplies
+    ? Math.max(0, Number(input.gasConsumption) || 0)
+    : existing?.gasConsumption ?? 0;
+  const cleanTons = userCanEditSupplies
+    ? Math.max(0, Number(input.dispatchedTons) || 0)
+    : existing?.dispatchedTons ?? 0;
+  const cleanBlack = userCanEditSupplies
+    ? Math.max(0, Math.round(Number(input.blackEarthTrips) || 0))
+    : existing?.blackEarthTrips ?? 0;
+  const cleanRed = userCanEditSupplies
+    ? Math.max(0, Math.round(Number(input.redEarthTrips) || 0))
+    : existing?.redEarthTrips ?? 0;
 
   let reportId: number;
 
@@ -349,13 +444,97 @@ export async function saveShiftReportAction(input: {
   return { ok: true, reportId };
 }
 
+export async function saveSuppliesReportAction(input: {
+  productionDate: string;
+  shift: ShiftType;
+  gasConsumption: number;
+  dispatchedTons: number;
+  blackEarthTrips: number;
+  redEarthTrips: number;
+}): Promise<{ ok: boolean; error?: string; reportId?: number }> {
+  const session = await getSession();
+  if (!session || !canEditSupplies(session.role)) {
+    return {
+      ok: false,
+      error:
+        'No tienes permisos para cargar Salida de Material, Consumo de Gas y Viajes de Tierra.',
+    };
+  }
+
+  const cleanGas = Math.max(0, Number(input.gasConsumption) || 0);
+  const cleanTons = Math.max(0, Number(input.dispatchedTons) || 0);
+  const cleanBlack = Math.max(0, Math.round(Number(input.blackEarthTrips) || 0));
+  const cleanRed = Math.max(0, Math.round(Number(input.redEarthTrips) || 0));
+
+  const [existing] = await db
+    .select()
+    .from(shiftReports)
+    .where(
+      and(
+        eq(shiftReports.productionDate, input.productionDate),
+        eq(shiftReports.shift, input.shift)
+      )
+    )
+    .limit(1);
+
+  let reportId: number;
+
+  if (existing) {
+    await db
+      .update(shiftReports)
+      .set({
+        gasConsumption: cleanGas,
+        dispatchedTons: cleanTons,
+        blackEarthTrips: cleanBlack,
+        redEarthTrips: cleanRed,
+        updatedAt: new Date(),
+      })
+      .where(eq(shiftReports.id, existing.id));
+    reportId = existing.id;
+  } else {
+    const [created] = await db
+      .insert(shiftReports)
+      .values({
+        productionDate: input.productionDate,
+        shift: input.shift,
+        foremanId: null,
+        foremanName: 'Pendiente de apertura por Capataz',
+        status: 'EN_CURSO',
+        gasConsumption: cleanGas,
+        dispatchedTons: cleanTons,
+        blackEarthTrips: cleanBlack,
+        redEarthTrips: cleanRed,
+        notes: '',
+      })
+      .returning();
+    reportId = created.id;
+  }
+
+  await db.insert(auditLogs).values({
+    userId: session.id,
+    userName: session.name,
+    action: 'SAVE_SUPPLIES',
+    entity: 'SHIFT_SUPPLIES',
+    details: `Fecha ${input.productionDate} | Turno ${input.shift} | Salida: ${cleanTons} tn, Gas: ${cleanGas} m³, Tierra N/R: ${cleanBlack}/${cleanRed}`,
+  });
+
+  revalidatePath('/capataz');
+  revalidatePath('/dashboard');
+  revalidatePath('/estadisticas');
+
+  return { ok: true, reportId };
+}
+
 export async function reopenShiftReportAction(reportId: number): Promise<{
   ok: boolean;
   error?: string;
 }> {
   const session = await getSession();
   if (!session || !canEditAnyShift(session.role)) {
-    return { ok: false, error: 'Solo el Ingeniero/Encargado o Administrador puede reabrir turnos.' };
+    return {
+      ok: false,
+      error: 'El único que puede reabrir o modificar un turno cerrado es el Administrador.',
+    };
   }
 
   await db
@@ -368,7 +547,7 @@ export async function reopenShiftReportAction(reportId: number): Promise<{
     userName: session.name,
     action: 'REOPEN_SHIFT',
     entity: 'SHIFT_REPORT',
-    details: `Reapertura de parte ID #${reportId}`,
+    details: `Reapertura de parte ID #${reportId} por Administrador`,
   });
 
   revalidatePath('/capataz');
@@ -383,7 +562,8 @@ export async function getRangeComparisonData(startDate: string, endDate: string)
     .where(
       and(
         gte(shiftReports.productionDate, startDate),
-        lte(shiftReports.productionDate, endDate)
+        lte(shiftReports.productionDate, endDate),
+        inArray(shiftReports.shift, ['MANANA', 'TARDE'])
       )
     )
     .orderBy(asc(shiftReports.productionDate), asc(shiftReports.shift));
@@ -402,7 +582,8 @@ export async function getRangeComparisonData(startDate: string, endDate: string)
             .where(
               and(
                 gte(shiftReports.productionDate, startDate),
-                lte(shiftReports.productionDate, endDate)
+                lte(shiftReports.productionDate, endDate),
+                inArray(shiftReports.shift, ['MANANA', 'TARDE'])
               )
             )
             .orderBy(asc(shiftReports.productionDate), asc(shiftReports.shift));

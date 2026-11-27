@@ -22,15 +22,15 @@ interface UserRow {
 const ROLE_DESCRIPTIONS: { role: RoleType; title: string; permissions: string }[] = [
   {
     role: 'CAPATAZ',
-    title: 'Capataz de Turno',
+    title: 'Capataz de Turno (Rotativo)',
     permissions:
-      'Acceso exclusivo al formulario móvil de su turno, guardado en vivo y cierre de turno.',
+      'Al ingresar elige Abrir/Iniciar Turno Mañana o Tarde y carga las 5 etapas productivas. Una vez cerrado el turno no puede modificar nada.',
   },
   {
     role: 'INGENIERO_ENCARGADO',
-    title: 'Ingeniero / Encargado de Planta',
+    title: 'Encargado (Salida, Gas y Tierra)',
     permissions:
-      'Dashboard en tiempo real, reapertura y corrección de partes de capataces, comparativas y catálogo de ladrillos.',
+      'Visualiza los datos que cargó el capataz y está habilitado exclusivamente para cargar Salida de Material, Consumo de Gas y Viajes de Tierra.',
   },
   {
     role: 'DIRECTORIO',
@@ -42,7 +42,7 @@ const ROLE_DESCRIPTIONS: { role: RoleType; title: string; permissions: string }[
     role: 'ADMIN',
     title: 'Administrador General',
     permissions:
-      'Control total del sistema, gestión de usuarios, asignación de roles RBAC y auditoría.',
+      'Control total del sistema, único rol habilitado para modificar o reabrir turnos cerrados, gestión de usuarios y catálogo.',
   },
 ];
 
@@ -173,7 +173,7 @@ export function UsuariosClient({ usersList }: { usersList: UserRow[] }) {
                   {ROLE_LABELS[u.role]}
                 </span>
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300">
-                  Turno {SHIFT_LABELS[u.defaultShift]}
+                  {u.role === 'CAPATAZ' ? 'Turnos Rotativos (Mañana / Tarde)' : `Turno ${SHIFT_LABELS[u.defaultShift]}`}
                 </span>
               </div>
             </div>
@@ -215,7 +215,7 @@ export function UsuariosClient({ usersList }: { usersList: UserRow[] }) {
                   </span>
                 </td>
                 <td className="py-3.5 px-5 font-semibold">
-                  {SHIFT_LABELS[u.defaultShift]}
+                  {u.role === 'CAPATAZ' ? 'Rotativo (Mañana / Tarde)' : SHIFT_LABELS[u.defaultShift]}
                 </td>
                 <td className="py-3.5 px-5">
                   <span
@@ -310,8 +310,8 @@ export function UsuariosClient({ usersList }: { usersList: UserRow[] }) {
                 onChange={(e) => setRole(e.target.value as RoleType)}
                 className="w-full px-3.5 py-2.5 rounded-xl text-base bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 font-bold min-h-[44px]"
               >
-                <option value="CAPATAZ">Capataz de Turno</option>
-                <option value="INGENIERO_ENCARGADO">Ingeniero / Encargado</option>
+                <option value="CAPATAZ">Capataz de Turno (Rotativo)</option>
+                <option value="INGENIERO_ENCARGADO">Encargado (Salida, Gas y Tierra)</option>
                 <option value="DIRECTORIO">Directorio / Dueños</option>
                 <option value="ADMIN">Administrador General</option>
               </select>
@@ -319,16 +319,15 @@ export function UsuariosClient({ usersList }: { usersList: UserRow[] }) {
 
             <div>
               <label className="block text-xs font-bold uppercase text-slate-500 mb-1">
-                Turno Predeterminado
+                Turno Inicial Sugerido (Rotativo)
               </label>
               <select
-                value={defaultShift}
+                value={defaultShift === 'NOCHE' ? 'MANANA' : defaultShift}
                 onChange={(e) => setDefaultShift(e.target.value as ShiftType)}
                 className="w-full px-3.5 py-2.5 rounded-xl text-base bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 font-bold min-h-[44px]"
               >
                 <option value="MANANA">TURNO MAÑANA</option>
                 <option value="TARDE">TURNO TARDE</option>
-                <option value="NOCHE">TURNO NOCHE</option>
               </select>
             </div>
           </div>

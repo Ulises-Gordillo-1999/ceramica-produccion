@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getSession } from '@/utils/auth';
+import { getSession, ACTIVE_SHIFTS } from '@/utils/auth';
 import { getDailyProductionData } from '@/app/actions/production';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CapatazSheetClient } from '@/components/capataz/CapatazSheetClient';
@@ -29,12 +29,22 @@ export default async function CapatazPage({
       ? params.date
       : getTodayStr();
 
-  const validShifts: ShiftType[] = ['MANANA', 'TARDE', 'NOCHE'];
-  const initialShift: ShiftType = validShifts.includes(params.shift as ShiftType)
-    ? (params.shift as ShiftType)
-    : session.defaultShift || 'MANANA';
-
   const summary = await getDailyProductionData(dateStr);
+
+  // Determinar turno inicial entre MAÑANA y TARDE (dado que los capataces rotan)
+  let initialShift: ShiftType = 'MANANA';
+  if (params.shift && ACTIVE_SHIFTS.includes(params.shift as ShiftType)) {
+    initialShift = params.shift as ShiftType;
+  } else if (summary.shifts.MANANA?.status === 'EN_CURSO') {
+    initialShift = 'MANANA';
+  } else if (summary.shifts.TARDE?.status === 'EN_CURSO') {
+    initialShift = 'TARDE';
+  } else if (summary.shifts.MANANA?.status === 'CERRADO' && !summary.shifts.TARDE) {
+    initialShift = 'TARDE';
+  } else {
+    const currentHour = new Date().getHours();
+    initialShift = currentHour >= 14 ? 'TARDE' : 'MANANA';
+  }
 
   return (
     <AppLayout user={session}>
@@ -46,4 +56,3 @@ export default async function CapatazPage({
     </AppLayout>
   );
 }
-

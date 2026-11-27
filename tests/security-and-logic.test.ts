@@ -7,10 +7,12 @@ import {
   type SessionUser,
 } from '../src/utils/jwt';
 import {
+  ACTIVE_SHIFTS,
   canEditAnyShift,
+  canEditProductionStages,
+  canEditSupplies,
   canManageUsers,
   canManageCatalog,
-  type RoleType,
 } from '../src/utils/roles';
 
 describe('🔒 1. Suite de Seguridad Criptográfica y Tokens JWT', () => {
@@ -50,11 +52,29 @@ describe('🔒 1. Suite de Seguridad Criptográfica y Tokens JWT', () => {
 });
 
 describe('🛡️ 2. Suite de Control de Acceso Basado en Roles (RBAC)', () => {
-  test('canEditAnyShift: Solo ADMIN e INGENIERO_ENCARGADO tienen permiso', () => {
+  test('ACTIVE_SHIFTS: El sistema opera exclusivamente con 2 turnos (MAÑANA y TARDE)', () => {
+    assert.deepEqual(ACTIVE_SHIFTS, ['MANANA', 'TARDE']);
+  });
+
+  test('canEditAnyShift: Únicamente el ADMIN puede modificar o reabrir turnos cerrados', () => {
     assert.equal(canEditAnyShift('ADMIN'), true);
-    assert.equal(canEditAnyShift('INGENIERO_ENCARGADO'), true);
-    assert.equal(canEditAnyShift('CAPATAZ'), false, 'El capataz no puede editar turnos ajenos');
+    assert.equal(canEditAnyShift('INGENIERO_ENCARGADO'), false);
+    assert.equal(canEditAnyShift('CAPATAZ'), false, 'El capataz no puede editar un turno cerrado');
     assert.equal(canEditAnyShift('DIRECTORIO'), false, 'El directorio es solo lectura de partes');
+  });
+
+  test('canEditProductionStages: Solo CAPATAZ y ADMIN pueden cargar las 5 etapas productivas', () => {
+    assert.equal(canEditProductionStages('CAPATAZ'), true);
+    assert.equal(canEditProductionStages('ADMIN'), true);
+    assert.equal(canEditProductionStages('INGENIERO_ENCARGADO'), false);
+    assert.equal(canEditProductionStages('DIRECTORIO'), false);
+  });
+
+  test('canEditSupplies: Solo el encargado designado y ADMIN cargan Salida, Gas y Viajes de Tierra', () => {
+    assert.equal(canEditSupplies('INGENIERO_ENCARGADO'), true);
+    assert.equal(canEditSupplies('ADMIN'), true);
+    assert.equal(canEditSupplies('CAPATAZ'), false);
+    assert.equal(canEditSupplies('DIRECTORIO'), false);
   });
 
   test('canManageUsers: Únicamente ADMIN puede administrar usuarios', () => {
@@ -64,9 +84,9 @@ describe('🛡️ 2. Suite de Control de Acceso Basado en Roles (RBAC)', () => {
     assert.equal(canManageUsers('DIRECTORIO'), false);
   });
 
-  test('canManageCatalog: Solo ADMIN e INGENIERO_ENCARGADO pueden gestionar ladrillos', () => {
+  test('canManageCatalog: Únicamente ADMIN puede gestionar el catálogo de ladrillos', () => {
     assert.equal(canManageCatalog('ADMIN'), true);
-    assert.equal(canManageCatalog('INGENIERO_ENCARGADO'), true);
+    assert.equal(canManageCatalog('INGENIERO_ENCARGADO'), false);
     assert.equal(canManageCatalog('CAPATAZ'), false);
     assert.equal(canManageCatalog('DIRECTORIO'), false);
   });

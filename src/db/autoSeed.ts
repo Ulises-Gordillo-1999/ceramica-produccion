@@ -167,7 +167,7 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
           defaultShift: 'MANANA',
         },
         {
-          name: 'Ing. Martín Pereyra (Encargado)',
+          name: 'Encargado (Salida, Gas y Tierra)',
           username: 'encargado',
           email: 'encargado@ceramica-planta.com',
           passwordHash,
@@ -175,7 +175,7 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
           defaultShift: 'MANANA',
         },
         {
-          name: 'Roberto Gómez (Capataz Mañana)',
+          name: 'Roberto Gómez (Capataz)',
           username: 'capataz.manana',
           email: 'manana@ceramica-planta.com',
           passwordHash,
@@ -183,20 +183,12 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
           defaultShift: 'MANANA',
         },
         {
-          name: 'Carlos Díaz (Capataz Tarde)',
+          name: 'Carlos Díaz (Capataz)',
           username: 'capataz.tarde',
           email: 'tarde@ceramica-planta.com',
           passwordHash,
           role: 'CAPATAZ',
           defaultShift: 'TARDE',
-        },
-        {
-          name: 'Miguel Sánchez (Capataz Noche)',
-          username: 'capataz.noche',
-          email: 'noche@ceramica-planta.com',
-          passwordHash,
-          role: 'CAPATAZ',
-          defaultShift: 'NOCHE',
         },
       ])
       .onConflictDoNothing()
@@ -205,7 +197,6 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
     const allUsers = insertedUsers.length > 0 ? insertedUsers : await db.query.users.findMany();
     const foremanManana = allUsers.find((u) => u.username === 'capataz.manana') || allUsers[0];
     const foremanTarde = allUsers.find((u) => u.username === 'capataz.tarde') || allUsers[0];
-    const foremanNoche = allUsers.find((u) => u.username === 'capataz.noche') || allUsers[0];
 
     // 2. Catálogo de Ladrillos
     await db
@@ -319,21 +310,6 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
         blackTrips: 7,
         redTrips: 5,
       },
-      {
-        shift: 'NOCHE',
-        foreman: foremanNoche,
-        baseExtrusora: 0,
-        baseSecadero: 18,
-        baseManual: 0,
-        baseRobot: 24,
-        baseHornoIn: 12,
-        baseHornoOut: 13,
-        baseDescarga: 8,
-        baseGas: 4610,
-        baseTons: 0,
-        blackTrips: 0,
-        redTrips: 0,
-      },
     ];
 
     for (let offset = -6; offset <= 0; offset++) {
@@ -341,7 +317,8 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
       const brickOfDay = offset % 3 === 0 ? h18 : offset % 2 === 0 ? h12 : p18;
 
       for (const s of shifts) {
-        if (offset === 0 && s.shift === 'NOCHE') continue;
+        // Para el día de hoy (offset 0), dejamos el turno TARDE sin iniciar para demostrar el botón "Abrir / Iniciar Turno"
+        if (offset === 0 && s.shift === 'TARDE') continue;
 
         const variance = ((Math.abs(offset) * 3 + (s.shift === 'MANANA' ? 2 : 1)) % 5) - 2;
         const isTodayTarde = offset === 0 && s.shift === 'TARDE';

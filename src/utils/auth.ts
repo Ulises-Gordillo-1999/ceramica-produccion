@@ -1,9 +1,12 @@
 import { cookies } from 'next/headers';
 import {
   SESSION_COOKIE_NAME,
+  ACTIVE_SHIFTS,
   ROLE_LABELS,
   SHIFT_LABELS,
   canEditAnyShift,
+  canEditProductionStages,
+  canEditSupplies,
   canManageUsers,
   canManageCatalog,
   type SessionUser,
@@ -12,9 +15,12 @@ import { signSessionToken, verifySessionToken } from './jwt';
 
 export {
   SESSION_COOKIE_NAME,
+  ACTIVE_SHIFTS,
   ROLE_LABELS,
   SHIFT_LABELS,
   canEditAnyShift,
+  canEditProductionStages,
+  canEditSupplies,
   canManageUsers,
   canManageCatalog,
   signSessionToken,

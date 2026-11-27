@@ -186,7 +186,7 @@ export function AppLayout({
             {user.name}
           </p>
           <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0">
-            {SHIFT_LABELS[user.defaultShift]}
+            {user.role === 'CAPATAZ' ? 'ROTATIVO' : SHIFT_LABELS[user.defaultShift]}
           </span>
         </div>
         <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 flex items-center gap-1.5">
