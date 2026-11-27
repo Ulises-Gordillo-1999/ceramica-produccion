@@ -19,7 +19,6 @@ import {
   AlertCircle,
   PlayCircle,
   Eye,
-  ShieldAlert,
 } from 'lucide-react';
 import type {
   DailyProductionSummary,
@@ -651,17 +650,21 @@ export function CapatazSheetClient({
         </div>
       )}
 
-      {/* Grilla Principal Idéntica a la Planilla: Izquierda 5 Etapas (8 cols) | Derecha Salida, Gas y Tierra (4 cols) */}
+      {/* Grilla Principal: Para Capataz ocupa 100% las 5 etapas (12 cols). Para Encargado/Admin muestra Izquierda 5 Etapas (8 cols) y Derecha Salida, Gas y Tierra (4 cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* BLOQUE IZQUIERDO: LAS 5 ETAPAS DE LÍNEA (CARGA DEL CAPATAZ) */}
         <div
-          className={`xl:col-span-8 space-y-4 transition-opacity ${
+          className={`${
+            userCanEditSupplies ? 'xl:col-span-8' : 'xl:col-span-12'
+          } space-y-4 transition-opacity ${
             !isShiftOpened && user.role === 'CAPATAZ' ? 'opacity-60 pointer-events-none' : ''
           }`}
         >
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-              1. Etapas de Producción (Carga del Capataz)
+              {userCanEditSupplies
+                ? '1. Etapas de Producción (Cargadas por el Capataz)'
+                : 'Etapas de Producción del Turno'}
             </span>
             {stagesReadOnly && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
@@ -838,206 +841,200 @@ export function CapatazSheetClient({
           </div>
         </div>
 
-        {/* BLOQUE DERECHO: SALIDA MATERIAL, CONSUMO DE GAS Y VIAJES TIERRA (CARGA DE LA OTRA PERSONA / ADMIN) */}
-        <div className="xl:col-span-4 space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-              2. Salida, Gas y Tierra
-            </span>
-            {suppliesReadOnly ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
-                <ShieldAlert className="w-3 h-3 text-amber-500" /> Carga Encargado / Admin
+        {/* BLOQUE DERECHO: SALIDA MATERIAL, CONSUMO DE GAS Y VIAJES TIERRA (OCULTO PARA CAPATACES; SOLO VISIBLE PARA ENCARGADO Y ADMIN) */}
+        {userCanEditSupplies && (
+          <div className="xl:col-span-4 space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                2. Salida, Gas y Tierra
               </span>
-            ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                 <CheckCircle2 className="w-3 h-3" /> Habilitado para carga
               </span>
-            )}
-          </div>
-
-          {/* 1. SALIDA MATERIAL */}
-          <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
-            <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
-              <span>SALIDA MATERIAL</span>
-              <Truck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <label className="text-xs font-extrabold uppercase text-slate-700 dark:text-zinc-300">
-                  TONELADAS (Turno)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.1"
-                  disabled={suppliesReadOnly}
-                  value={dispatchedTons}
-                  onChange={(e) => setDispatchedTons(e.target.value)}
-                  className="w-36 text-right font-extrabold text-lg py-2 px-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[44px] disabled:opacity-60"
-                />
+
+            {/* 1. SALIDA MATERIAL */}
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
+              <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
+                <span>SALIDA MATERIAL</span>
+                <Truck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex justify-between pt-2 border-t border-slate-100 dark:border-zinc-800">
-                <span>Total Acumulado del Día:</span>
-                <strong className="text-slate-900 dark:text-zinc-100">
-                  {initialSummary.totals.dispatchedTons} tn
-                </strong>
-              </p>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-xs font-extrabold uppercase text-slate-700 dark:text-zinc-300">
+                    TONELADAS (Turno)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.1"
+                    disabled={suppliesReadOnly}
+                    value={dispatchedTons}
+                    onChange={(e) => setDispatchedTons(e.target.value)}
+                    className="w-36 text-right font-extrabold text-lg py-2 px-3 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[44px] disabled:opacity-60"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex justify-between pt-2 border-t border-slate-100 dark:border-zinc-800">
+                  <span>Total Acumulado del Día:</span>
+                  <strong className="text-slate-900 dark:text-zinc-100">
+                    {initialSummary.totals.dispatchedTons} tn
+                  </strong>
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* 2. CONSUMO DE GAS (SOLO TURNO MAÑANA Y TURNO TARDE) */}
-          <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
-            <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
-              <span>CONSUMO DE GAS</span>
-              <Flame className="w-4 h-4 text-orange-500" />
-            </div>
-            <div className="p-4 space-y-3">
-              {ACTIVE_SHIFTS.map((sh) => {
-                const isCurrentShift = sh === selectedShift;
-                const otherVal =
-                  sh === 'MANANA'
-                    ? initialSummary.totals.gasManana
-                    : initialSummary.totals.gasTarde;
+            {/* 2. CONSUMO DE GAS (SOLO TURNO MAÑANA Y TURNO TARDE) */}
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
+              <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
+                <span>CONSUMO DE GAS</span>
+                <Flame className="w-4 h-4 text-orange-500" />
+              </div>
+              <div className="p-4 space-y-3">
+                {ACTIVE_SHIFTS.map((sh) => {
+                  const isCurrentShift = sh === selectedShift;
+                  const otherVal =
+                    sh === 'MANANA'
+                      ? initialSummary.totals.gasManana
+                      : initialSummary.totals.gasTarde;
 
-                return (
-                  <div
-                    key={sh}
-                    className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border ${
-                      isCurrentShift
-                        ? 'bg-amber-500/10 border-amber-500/40'
-                        : 'bg-slate-50/60 dark:bg-zinc-950/40 border-slate-200/60 dark:border-zinc-800/60 opacity-80'
-                    }`}
-                  >
-                    <div>
-                      <span className="text-xs font-extrabold uppercase block text-slate-800 dark:text-zinc-200">
-                        TURNO {SHIFT_LABELS[sh]}
-                      </span>
-                      {isCurrentShift && (
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                          Turno seleccionado
+                  return (
+                    <div
+                      key={sh}
+                      className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border ${
+                        isCurrentShift
+                          ? 'bg-amber-500/10 border-amber-500/40'
+                          : 'bg-slate-50/60 dark:bg-zinc-950/40 border-slate-200/60 dark:border-zinc-800/60 opacity-80'
+                      }`}
+                    >
+                      <div>
+                        <span className="text-xs font-extrabold uppercase block text-slate-800 dark:text-zinc-200">
+                          TURNO {SHIFT_LABELS[sh]}
+                        </span>
+                        {isCurrentShift && (
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                            Turno seleccionado
+                          </span>
+                        )}
+                      </div>
+
+                      {isCurrentShift ? (
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="any"
+                          disabled={suppliesReadOnly}
+                          value={gasConsumption}
+                          onChange={(e) => setGasConsumption(e.target.value)}
+                          className="w-32 text-right font-extrabold text-lg py-1.5 px-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-amber-500 text-slate-900 dark:text-zinc-100 focus:outline-none min-h-[44px] disabled:opacity-60"
+                        />
+                      ) : (
+                        <span className="font-bold text-base px-3 py-1.5 text-slate-600 dark:text-zinc-400">
+                          {otherVal.toLocaleString('es-AR')} m³
                         </span>
                       )}
                     </div>
+                  );
+                })}
 
-                    {isCurrentShift ? (
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="any"
-                        disabled={suppliesReadOnly}
-                        value={gasConsumption}
-                        onChange={(e) => setGasConsumption(e.target.value)}
-                        className="w-32 text-right font-extrabold text-lg py-1.5 px-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-amber-500 text-slate-900 dark:text-zinc-100 focus:outline-none min-h-[44px] disabled:opacity-60"
-                      />
-                    ) : (
-                      <span className="font-bold text-base px-3 py-1.5 text-slate-600 dark:text-zinc-400">
-                        {otherVal.toLocaleString('es-AR')} m³
-                      </span>
-                    )}
+                <div className="flex justify-between text-xs pt-2 border-t border-slate-100 dark:border-zinc-800">
+                  <span className="text-slate-500 dark:text-zinc-400">Gas Total del Día:</span>
+                  <strong className="text-slate-900 dark:text-zinc-100">
+                    {initialSummary.totals.totalGas.toLocaleString('es-AR')} m³
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. VIAJES TIERRA */}
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
+              <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
+                <span>VIAJES TIERRA</span>
+                <Mountain className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-extrabold uppercase text-slate-700 dark:text-zinc-300">
+                    VIAJES NEGRA
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={suppliesReadOnly}
+                      onClick={() =>
+                        setBlackEarthTrips(
+                          String(Math.max(0, (Number(blackEarthTrips) || 0) - 1))
+                        )
+                      }
+                      className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      disabled={suppliesReadOnly}
+                      value={blackEarthTrips}
+                      onChange={(e) => setBlackEarthTrips(e.target.value)}
+                      className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px] disabled:opacity-60"
+                    />
+                    <button
+                      type="button"
+                      disabled={suppliesReadOnly}
+                      onClick={() =>
+                        setBlackEarthTrips(String((Number(blackEarthTrips) || 0) + 1))
+                      }
+                      className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
+                    >
+                      +
+                    </button>
                   </div>
-                );
-              })}
-
-              <div className="flex justify-between text-xs pt-2 border-t border-slate-100 dark:border-zinc-800">
-                <span className="text-slate-500 dark:text-zinc-400">Gas Total del Día:</span>
-                <strong className="text-slate-900 dark:text-zinc-100">
-                  {initialSummary.totals.totalGas.toLocaleString('es-AR')} m³
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          {/* 3. VIAJES TIERRA */}
-          <div className="rounded-2xl bg-white dark:bg-zinc-900 border-2 border-slate-300 dark:border-zinc-700 overflow-hidden shadow-xs">
-            <div className="px-4 py-2.5 bg-slate-200 dark:bg-zinc-800 font-extrabold text-sm tracking-wider uppercase text-slate-900 dark:text-zinc-100 flex items-center justify-between">
-              <span>VIAJES TIERRA</span>
-              <Mountain className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <label className="text-xs font-extrabold uppercase text-slate-700 dark:text-zinc-300">
-                  VIAJES NEGRA
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    disabled={suppliesReadOnly}
-                    onClick={() =>
-                      setBlackEarthTrips(
-                        String(Math.max(0, (Number(blackEarthTrips) || 0) - 1))
-                      )
-                    }
-                    className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    disabled={suppliesReadOnly}
-                    value={blackEarthTrips}
-                    onChange={(e) => setBlackEarthTrips(e.target.value)}
-                    className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px] disabled:opacity-60"
-                  />
-                  <button
-                    type="button"
-                    disabled={suppliesReadOnly}
-                    onClick={() =>
-                      setBlackEarthTrips(String((Number(blackEarthTrips) || 0) + 1))
-                    }
-                    className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
-                  >
-                    +
-                  </button>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between gap-2">
-                <label className="text-xs font-extrabold uppercase text-slate-700 dark:text-zinc-300">
-                  VIAJES ROJA
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    disabled={suppliesReadOnly}
-                    onClick={() =>
-                      setRedEarthTrips(
-                        String(Math.max(0, (Number(redEarthTrips) || 0) - 1))
-                      )
-                    }
-                    className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    disabled={suppliesReadOnly}
-                    value={redEarthTrips}
-                    onChange={(e) => setRedEarthTrips(e.target.value)}
-                    className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px] disabled:opacity-60"
-                  />
-                  <button
-                    type="button"
-                    disabled={suppliesReadOnly}
-                    onClick={() =>
-                      setRedEarthTrips(String((Number(redEarthTrips) || 0) + 1))
-                    }
-                    className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
-                  >
-                    +
-                  </button>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-extrabold uppercase text-slate-700 dark:text-zinc-300">
+                    VIAJES ROJA
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={suppliesReadOnly}
+                      onClick={() =>
+                        setRedEarthTrips(
+                          String(Math.max(0, (Number(redEarthTrips) || 0) - 1))
+                        )
+                      }
+                      className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      disabled={suppliesReadOnly}
+                      value={redEarthTrips}
+                      onChange={(e) => setRedEarthTrips(e.target.value)}
+                      className="w-20 text-center font-extrabold text-lg py-1.5 px-2 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-300 dark:border-zinc-700 min-h-[44px] disabled:opacity-60"
+                    />
+                    <button
+                      type="button"
+                      disabled={suppliesReadOnly}
+                      onClick={() =>
+                        setRedEarthTrips(String((Number(redEarthTrips) || 0) + 1))
+                      }
+                      className="w-10 h-10 rounded-xl font-bold bg-slate-200 dark:bg-zinc-800 cursor-pointer disabled:opacity-40"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Botón directo para guardar Salida, Gas y Tierra cuando ingresa la persona encargada */}
-          {!suppliesReadOnly && (
+            {/* Botón directo para guardar Salida, Gas y Tierra cuando ingresa la persona encargada */}
             <button
               type="button"
               disabled={saving}
@@ -1051,8 +1048,8 @@ export function CapatazSheetClient({
                   : `Guardar Salida, Gas y Tierra (${SHIFT_LABELS[selectedShift]})`}
               </span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Barra Flotante Inferior: Para el Capataz (cuando el turno fue iniciado y no está cerrado) o Admin */}
