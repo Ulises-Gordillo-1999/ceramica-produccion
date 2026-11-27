@@ -28,6 +28,7 @@ import {
   createBiometricPasskey,
   getStoredBiometricInfo,
   clearStoredBiometricInfo,
+  isInstalledMobilePwa,
 } from '@/utils/biometrics';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -50,6 +51,7 @@ export function AppLayout({
   });
   const [bioLoading, setBioLoading] = useState(false);
   const [bioFeedback, setBioFeedback] = useState<string | null>(null);
+  const [showBiometric, setShowBiometric] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   const pathname = usePathname();
@@ -60,6 +62,7 @@ export function AppLayout({
   }, [pathname]);
 
   useEffect(() => {
+    setShowBiometric(isInstalledMobilePwa());
     const info = getStoredBiometricInfo();
     setBioStatus({ linked: Boolean(info.credentialId), label: info.userLabel });
 
@@ -255,28 +258,30 @@ export function AppLayout({
           </span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setBioFeedback(null);
-            setBioModalOpen(true);
-          }}
-          className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-zinc-800/90 text-slate-700 dark:text-zinc-200 hover:bg-slate-200/70 dark:hover:bg-zinc-800 transition-colors min-h-[44px] cursor-pointer"
-        >
-          <span className="flex items-center gap-2.5">
-            <Fingerprint className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>Acceso con Huella</span>
-          </span>
-          <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-              bioStatus.linked
-                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                : 'bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
-            }`}
+        {showBiometric && (
+          <button
+            type="button"
+            onClick={() => {
+              setBioFeedback(null);
+              setBioModalOpen(true);
+            }}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-zinc-800/90 text-slate-700 dark:text-zinc-200 hover:bg-slate-200/70 dark:hover:bg-zinc-800 transition-colors min-h-[44px] cursor-pointer"
           >
-            {bioStatus.linked ? 'Activa' : 'Configurar'}
-          </span>
-        </button>
+            <span className="flex items-center gap-2.5">
+              <Fingerprint className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>Acceso con Huella</span>
+            </span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                bioStatus.linked
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
+              }`}
+            >
+              {bioStatus.linked ? 'Activa' : 'Configurar'}
+            </span>
+          </button>
+        )}
 
         <button
           type="button"

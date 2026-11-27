@@ -15,7 +15,11 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { loginAction, loginWithPasskeyAction } from '@/app/actions/auth';
-import { getStoredBiometricInfo, verifyBiometricPasskey } from '@/utils/biometrics';
+import {
+  getStoredBiometricInfo,
+  isInstalledMobilePwa,
+  verifyBiometricPasskey,
+} from '@/utils/biometrics';
 
 const QUICK_PROFILES = [
   {
@@ -61,11 +65,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [bioUser, setBioUser] = useState<string | null>(null);
+  const [showBiometric, setShowBiometric] = useState(false);
   const passwordInputRef = React.useRef<HTMLInputElement>(null);
 
   const router = useRouter();
 
   useEffect(() => {
+    setShowBiometric(isInstalledMobilePwa());
     const info = getStoredBiometricInfo();
     if (info.credentialId) {
       setBioUser(info.userLabel || 'Usuario vinculado');
@@ -149,29 +155,33 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Botón Primario de Huella Digital (WebAuthn) */}
-          <button
-            type="button"
-            onClick={handleBiometricLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 transition-all min-h-[52px] cursor-pointer disabled:opacity-50"
-          >
-            <Fingerprint className="w-6 h-6 shrink-0" />
-            <div className="text-left">
-              <span className="block leading-tight">Ingresar con Huella Digital</span>
-              <span className="block text-[11px] font-normal text-emerald-100">
-                {bioUser ? `Vinculado a: ${bioUser}` : 'Acceso rápido biométrico (PWA)'}
-              </span>
-            </div>
-          </button>
+          {/* Botón Primario de Huella Digital (WebAuthn) — Solo visible cuando la app está instalada en el celular (PWA) */}
+          {showBiometric && (
+            <>
+              <button
+                type="button"
+                onClick={handleBiometricLogin}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/20 transition-all min-h-[52px] cursor-pointer disabled:opacity-50"
+              >
+                <Fingerprint className="w-6 h-6 shrink-0" />
+                <div className="text-left">
+                  <span className="block leading-tight">Ingresar con Huella Digital</span>
+                  <span className="block text-[11px] font-normal text-emerald-100">
+                    {bioUser ? `Vinculado a: ${bioUser}` : 'Acceso rápido biométrico (PWA)'}
+                  </span>
+                </div>
+              </button>
 
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800" />
-            <span className="flex-shrink mx-3 text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-zinc-500">
-              o con tu usuario
-            </span>
-            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800" />
-          </div>
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-slate-200 dark:border-zinc-800" />
+                <span className="flex-shrink mx-3 text-[11px] uppercase tracking-wider font-semibold text-slate-400 dark:text-zinc-500">
+                  o con tu usuario
+                </span>
+                <div className="flex-grow border-t border-slate-200 dark:border-zinc-800" />
+              </div>
+            </>
+          )}
 
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs font-semibold text-rose-600 dark:text-rose-400">

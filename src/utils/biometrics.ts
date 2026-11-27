@@ -31,6 +31,20 @@ export function getStoredBiometricInfo(): { credentialId: string | null; userLab
   };
 }
 
+/**
+ * Detecta si la aplicación se está ejecutando como PWA instalada en el celular
+ * (display-mode standalone/fullscreen en un dispositivo móvil).
+ */
+export function isInstalledMobilePwa(): boolean {
+  if (typeof window === 'undefined') return false;
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent);
+  return isStandalone && isMobile;
+}
+
 export function clearStoredBiometricInfo() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(LOCAL_CRED_KEY);
