@@ -21,8 +21,12 @@ function formatLocalDate(daysOffset = 0): string {
 }
 
 /**
- * Asegura que los esquemas, tipos y tablas existan en PostgreSQL
- * sin requerir ejecución manual de scripts SQL en la terminal.
+ * Asegura y migra automáticamente el esquema en PostgreSQL:
+ * 1. Crea tipos y tablas si no existen.
+ * 2. Agrega las nuevas columnas de trazabilidad de Apertura/Cierre (opened_at, closed_by_id, reopened_by_id, reopened_at)
+ *    y de Separación de Carga de Suministros (supplies_user_id, supplies_user_name, supplies_updated_at).
+ * 3. Migra los datos vivos: elimina turnos NOCHE, elimina usuario capataz.noche, actualiza nombres de capataces rotativos
+ *    y aplica constraint CHECK ('MANANA', 'TARDE') a nivel de base de datos.
  */
 export async function ensureDatabaseSchema(): Promise<void> {
   try {
@@ -85,16 +89,44 @@ export async function ensureDatabaseSchema(): Promise<void> {
         "foreman_id" integer,
         "foreman_name" text NOT NULL,
         "status" "shift_status_enum" DEFAULT 'EN_CURSO' NOT NULL,
+        "opened_at" timestamp DEFAULT now() NOT NULL,
+        "closed_at" timestamp,
+        "closed_by_id" integer,
+        "reopened_by_id" integer,
+        "reopened_at" timestamp,
         "gas_consumption" double precision DEFAULT 0 NOT NULL,
         "dispatched_tons" double precision DEFAULT 0 NOT NULL,
         "black_earth_trips" integer DEFAULT 0 NOT NULL,
         "red_earth_trips" integer DEFAULT 0 NOT NULL,
+        "supplies_user_id" integer,
+        "supplies_user_name" text,
+        "supplies_updated_at" timestamp,
         "notes" text DEFAULT '',
-        "closed_at" timestamp,
         "updated_at" timestamp DEFAULT now() NOT NULL,
         "created_at" timestamp DEFAULT now() NOT NULL,
         CONSTRAINT "shift_reports_foreman_id_users_id_fk" FOREIGN KEY ("foreman_id") REFERENCES "public"."users"("id") ON DELETE SET NULL
       );
+
+      -- Migración automática sobre tablas existentes en producción:
+      ALTER TABLE "shift_reports" ADD COLUMN IF NOT EXISTS "opened_at" timestamp DEFAULT now() NOT NULL;
+      ALTER TABLE "shift_reports" ADD COLUMN IF NOT EXISTS "closed_by_id" integer REFERENCES "public"."users"("id") ON DELETE SET NULL;
+      ALTER TABLE "shift_reports" ADD COLUMN IF NOT EXISTS "reopened_by_id" integer REFERENCES "public"."users"("id") ON DELETE SET NULL;
+      ALTER TABLE "shift_reports" ADD COLUMN IF NOT EXISTS "reopened_at" timestamp;
+      ALTER TABLE "shift_reports" ADD COLUMN IF NOT EXISTS "supplies_user_id" integer REFERENCES "public"."users"("id") ON DELETE SET NULL;
+      ALTER TABLE "shift_reports" ADD COLUMN IF NOT EXISTS "supplies_user_name" text;
+      ALTER TABLE "shift_reports" ADD COLUMN IF NOT EXISTS "supplies_updated_at" timestamp;
+
+      -- Purgar turnos NOCHE antiguos y usuario capataz.noche, y actualizar nombres a Capataces Rotativos:
+      DELETE FROM "shift_reports" WHERE "shift" = 'NOCHE';
+      DELETE FROM "users" WHERE "username" = 'capataz.noche';
+      UPDATE "users" SET "default_shift" = 'MANANA' WHERE "default_shift" = 'NOCHE';
+      UPDATE "users" SET "name" = 'Roberto Gómez (Capataz)' WHERE "username" = 'capataz.manana';
+      UPDATE "users" SET "name" = 'Carlos Díaz (Capataz)' WHERE "username" = 'capataz.tarde';
+      UPDATE "users" SET "name" = 'Encargado (Salida, Gas y Tierra)' WHERE "username" = 'encargado';
+
+      -- Restricción CHECK a nivel de motor PostgreSQL: solo permitir turnos MANANA y TARDE
+      ALTER TABLE "shift_reports" DROP CONSTRAINT IF EXISTS "shift_reports_two_shifts_check";
+      ALTER TABLE "shift_reports" ADD CONSTRAINT "shift_reports_two_shifts_check" CHECK ("shift" IN ('MANANA', 'TARDE'));
 
       CREATE TABLE IF NOT EXISTS "shift_stage_entries" (
         "id" serial PRIMARY KEY NOT NULL,
@@ -130,23 +162,24 @@ export async function ensureDatabaseSchema(): Promise<void> {
         CONSTRAINT "audit_logs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL
       );
 
+      CREATE UNIQUE INDEX IF NOT EXISTS "shift_reports_date_shift_idx" ON "shift_reports" ("production_date", "shift");
       CREATE INDEX IF NOT EXISTS "shift_reports_date_idx" ON "shift_reports" ("production_date");
       CREATE INDEX IF NOT EXISTS "stage_entries_report_idx" ON "shift_stage_entries" ("shift_report_id");
     `);
   } catch (err) {
-    console.warn('⚠️ [AUTO-SCHEMA] Aviso al validar estructura de tablas:', err);
+    console.warn('⚠️ [AUTO-SCHEMA] Aviso al validar o migrar estructura de tablas:', err);
   }
 }
 
 export async function runAutoSeed(): Promise<{ success: boolean; message: string }> {
   try {
-    // 0. Asegurar esquema
+    // 0. Asegurar esquema y migraciones en base de datos
     await ensureDatabaseSchema();
 
     const defaultPass = process.env.SEED_DEFAULT_PASSWORD || 'Ceramica2026!';
     const passwordHash = await bcrypt.hash(defaultPass, 10);
 
-    // 1. Usuarios por rol
+    // 1. Usuarios por rol (Sin capataz.noche; capataces rotativos y encargado de suministros)
     const insertedUsers = await db
       .insert(users)
       .values([
@@ -197,6 +230,7 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
     const allUsers = insertedUsers.length > 0 ? insertedUsers : await db.query.users.findMany();
     const foremanManana = allUsers.find((u) => u.username === 'capataz.manana') || allUsers[0];
     const foremanTarde = allUsers.find((u) => u.username === 'capataz.tarde') || allUsers[0];
+    const encargadoUser = allUsers.find((u) => u.username === 'encargado') || allUsers[0];
 
     // 2. Catálogo de Ladrillos
     await db
@@ -264,7 +298,7 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
     const h18 = bricks.find((b) => b.code === 'H18') || bricks[0];
     const p18 = bricks.find((b) => b.code === 'P18') || bricks[0];
 
-    // 3. Generar 7 días de turnos (del día -6 al día 0)
+    // 3. Generar 7 días de turnos (2 turnos: MAÑANA y TARDE, rotando capataces)
     const shifts: {
       shift: ShiftType;
       foreman: typeof foremanManana;
@@ -317,28 +351,37 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
       const brickOfDay = offset % 3 === 0 ? h18 : offset % 2 === 0 ? h12 : p18;
 
       for (const s of shifts) {
-        // Para el día de hoy (offset 0), dejamos el turno TARDE sin iniciar para demostrar el botón "Abrir / Iniciar Turno"
+        // Para hoy (offset 0), dejamos TARDE sin iniciar para que el capataz vea el botón "Abrir / Iniciar Turno"
         if (offset === 0 && s.shift === 'TARDE') continue;
 
         const variance = ((Math.abs(offset) * 3 + (s.shift === 'MANANA' ? 2 : 1)) % 5) - 2;
-        const isTodayTarde = offset === 0 && s.shift === 'TARDE';
+        // Demostrar rotación de capataces entre días pares e impares
+        const rotatedForeman =
+          Math.abs(offset) % 2 === 1
+            ? s.shift === 'MANANA'
+              ? foremanTarde
+              : foremanManana
+            : s.foreman;
 
         const [report] = await db
           .insert(shiftReports)
           .values({
             productionDate: dateStr,
             shift: s.shift,
-            foremanId: s.foreman ? s.foreman.id : null,
-            foremanName: s.foreman ? s.foreman.name : 'Capataz de Turno',
-            status: isTodayTarde ? 'EN_CURSO' : offset < -1 ? 'AUDITADO' : 'CERRADO',
+            foremanId: rotatedForeman ? rotatedForeman.id : null,
+            foremanName: rotatedForeman ? rotatedForeman.name : 'Capataz de Turno',
+            status: 'CERRADO',
+            openedAt: new Date(),
+            closedAt: new Date(),
+            closedById: rotatedForeman ? rotatedForeman.id : null,
             gasConsumption: Math.max(0, s.baseGas + variance * 90),
             dispatchedTons: s.baseTons > 0 ? Number((s.baseTons + variance * 6.5).toFixed(1)) : 0,
             blackEarthTrips: Math.max(0, s.blackTrips + (variance > 0 ? 1 : 0)),
             redEarthTrips: Math.max(0, s.redTrips + (variance < 0 ? 1 : 0)),
-            notes: isTodayTarde
-              ? 'Turno en curso. Carga de robot operando en ciclo normal.'
-              : 'Producción normal sin paradas mecánicas relevantes.',
-            closedAt: isTodayTarde ? null : new Date(),
+            suppliesUserId: encargadoUser ? encargadoUser.id : null,
+            suppliesUserName: encargadoUser ? encargadoUser.name : 'Encargado',
+            suppliesUpdatedAt: new Date(),
+            notes: 'Producción normal sin paradas mecánicas relevantes.',
           })
           .onConflictDoNothing()
           .returning();
@@ -378,10 +421,10 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
       userName: foremanManana ? foremanManana.name : 'Sistema',
       action: 'AUTO_SEED',
       entity: 'SYSTEM',
-      details: 'Inicialización automática de catálogo y 7 días de turnos de producción.',
+      details: 'Inicialización automática de catálogo y 7 días de turnos (Mañana y Tarde).',
     });
 
-    return { success: true, message: '7 días de turnos cargados exitosamente.' };
+    return { success: true, message: '7 días de turnos (Mañana y Tarde) cargados exitosamente.' };
   } catch (err) {
     console.error('Error en runAutoSeed:', err);
     return {
@@ -391,19 +434,24 @@ export async function runAutoSeed(): Promise<{ success: boolean; message: string
   }
 }
 
+let schemaMigratedInProcess = false;
+
 /**
- * Verifica si existen turnos de producción en la base de datos.
- * Si la tabla está vacía o no existe, la crea y puebla automáticamente.
+ * Ejecuta siempre la migración de esquema/limpieza de BD (incluso si ya hay turnos),
+ * y si la tabla está vacía o el día de hoy aún no tiene turnos, los inicializa.
  */
 export async function ensureDatabaseSeeded(): Promise<boolean> {
   try {
-    await ensureDatabaseSchema();
+    if (!schemaMigratedInProcess) {
+      await ensureDatabaseSchema();
+      schemaMigratedInProcess = true;
+    }
 
     const existing = await db.select({ count: sql<number>`count(*)` }).from(shiftReports);
     const count = Number(existing[0]?.count || 0);
 
     if (count > 0) {
-      return false; // Ya tiene datos de turnos
+      return false; // Ya tiene datos y el esquema ya fue migrado
     }
 
     console.log('🌱 [AUTO-SEED] Base de datos sin turnos. Ejecutando inicialización automática...');

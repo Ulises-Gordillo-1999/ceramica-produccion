@@ -75,6 +75,14 @@ export interface DailyProductionSummary {
 const WAGON_STAGES: ProductionStageType[] = ['HORNO_CARGADAS', 'HORNO_FUERA', 'DESCARGA'];
 
 export async function getDailyProductionData(dateStr: string): Promise<DailyProductionSummary> {
+  // Garantizar que la migración de BD (2 turnos, columnas de apertura y suministros) se haya aplicado
+  try {
+    const { ensureDatabaseSeeded } = await import('@/db/autoSeed');
+    await ensureDatabaseSeeded();
+  } catch (err) {
+    console.warn('Auto-schema/seed check warning:', err);
+  }
+
   const allBricks = await db
     .select()
     .from(brickTypes)
@@ -270,12 +278,13 @@ export async function openShiftReportAction(input: {
       foremanId: session.id,
       foremanName: cleanForeman,
       status: 'EN_CURSO',
+      openedAt: new Date(),
+      closedAt: null,
       gasConsumption: 0,
       dispatchedTons: 0,
       blackEarthTrips: 0,
       redEarthTrips: 0,
       notes: '',
-      closedAt: null,
     })
     .returning();
 
@@ -378,6 +387,14 @@ export async function saveShiftReportAction(input: {
         redEarthTrips: cleanRed,
         notes: input.notes.trim(),
         closedAt: input.status === 'CERRADO' ? new Date() : existing.closedAt,
+        closedById: input.status === 'CERRADO' ? session.id : existing.closedById,
+        ...(userCanEditSupplies
+          ? {
+              suppliesUserId: session.id,
+              suppliesUserName: session.name,
+              suppliesUpdatedAt: new Date(),
+            }
+          : {}),
         updatedAt: new Date(),
       })
       .where(eq(shiftReports.id, existing.id));
@@ -393,12 +410,21 @@ export async function saveShiftReportAction(input: {
         foremanId: session.id,
         foremanName: input.foremanName.trim() || session.name,
         status: input.status,
+        openedAt: new Date(),
         gasConsumption: cleanGas,
         dispatchedTons: cleanTons,
         blackEarthTrips: cleanBlack,
         redEarthTrips: cleanRed,
         notes: input.notes.trim(),
         closedAt: input.status === 'CERRADO' ? new Date() : null,
+        closedById: input.status === 'CERRADO' ? session.id : null,
+        ...(userCanEditSupplies
+          ? {
+              suppliesUserId: session.id,
+              suppliesUserName: session.name,
+              suppliesUpdatedAt: new Date(),
+            }
+          : {}),
       })
       .returning();
 
@@ -487,6 +513,9 @@ export async function saveSuppliesReportAction(input: {
         dispatchedTons: cleanTons,
         blackEarthTrips: cleanBlack,
         redEarthTrips: cleanRed,
+        suppliesUserId: session.id,
+        suppliesUserName: session.name,
+        suppliesUpdatedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(shiftReports.id, existing.id));
@@ -500,10 +529,14 @@ export async function saveSuppliesReportAction(input: {
         foremanId: null,
         foremanName: 'Pendiente de apertura por Capataz',
         status: 'EN_CURSO',
+        openedAt: new Date(),
         gasConsumption: cleanGas,
         dispatchedTons: cleanTons,
         blackEarthTrips: cleanBlack,
         redEarthTrips: cleanRed,
+        suppliesUserId: session.id,
+        suppliesUserName: session.name,
+        suppliesUpdatedAt: new Date(),
         notes: '',
       })
       .returning();
@@ -539,7 +572,12 @@ export async function reopenShiftReportAction(reportId: number): Promise<{
 
   await db
     .update(shiftReports)
-    .set({ status: 'EN_CURSO', updatedAt: new Date() })
+    .set({
+      status: 'EN_CURSO',
+      reopenedById: session.id,
+      reopenedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(eq(shiftReports.id, reportId));
 
   await db.insert(auditLogs).values({

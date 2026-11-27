@@ -1,5 +1,5 @@
 -- ==============================================================================
--- CERÁMICA PRODUCCIÓN ERP - Esquema SQL Oficial y Semilla Inicial
+-- CERÁMICA PRODUCCIÓN ERP - Esquema SQL Oficial y Semilla Inicial (2 Turnos: Mañana y Tarde)
 -- Ejecutar en la base de datos: ceramica_prod_db (dentro de postgres-cluster)
 -- ==============================================================================
 
@@ -60,18 +60,31 @@ CREATE TABLE IF NOT EXISTS "shift_reports" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"production_date" text NOT NULL,
 	"shift" "shift_type_enum" NOT NULL,
+	-- Trazabilidad del Capataz (Apertura, 5 Etapas y Cierre)
 	"foreman_id" integer,
 	"foreman_name" text NOT NULL,
 	"status" "shift_status_enum" DEFAULT 'EN_CURSO' NOT NULL,
+	"opened_at" timestamp DEFAULT now() NOT NULL,
+	"closed_at" timestamp,
+	"closed_by_id" integer,
+	"reopened_by_id" integer,
+	"reopened_at" timestamp,
+	-- Trazabilidad separada de Salida de Material, Consumo de Gas y Viajes de Tierra
 	"gas_consumption" double precision DEFAULT 0 NOT NULL,
 	"dispatched_tons" double precision DEFAULT 0 NOT NULL,
 	"black_earth_trips" integer DEFAULT 0 NOT NULL,
 	"red_earth_trips" integer DEFAULT 0 NOT NULL,
+	"supplies_user_id" integer,
+	"supplies_user_name" text,
+	"supplies_updated_at" timestamp,
 	"notes" text DEFAULT '',
-	"closed_at" timestamp,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "shift_reports_foreman_id_users_id_fk" FOREIGN KEY ("foreman_id") REFERENCES "public"."users"("id") ON DELETE SET NULL
+	CONSTRAINT "shift_reports_foreman_id_users_id_fk" FOREIGN KEY ("foreman_id") REFERENCES "public"."users"("id") ON DELETE SET NULL,
+	CONSTRAINT "shift_reports_closed_by_id_users_id_fk" FOREIGN KEY ("closed_by_id") REFERENCES "public"."users"("id") ON DELETE SET NULL,
+	CONSTRAINT "shift_reports_reopened_by_id_users_id_fk" FOREIGN KEY ("reopened_by_id") REFERENCES "public"."users"("id") ON DELETE SET NULL,
+	CONSTRAINT "shift_reports_supplies_user_id_users_id_fk" FOREIGN KEY ("supplies_user_id") REFERENCES "public"."users"("id") ON DELETE SET NULL,
+	CONSTRAINT "shift_reports_two_shifts_check" CHECK ("shift" IN ('MANANA', 'TARDE'))
 );
 
 CREATE TABLE IF NOT EXISTS "shift_stage_entries" (
@@ -118,10 +131,9 @@ INSERT INTO "users" ("name", "username", "email", "password_hash", "role", "defa
 VALUES
   ('Administrador General', 'admin', 'admin@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'ADMIN', 'MANANA'),
   ('Directorio / Socio Gerente', 'directorio', 'directorio@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'DIRECTORIO', 'MANANA'),
-  ('Ing. Martín Pereyra (Encargado)', 'encargado', 'encargado@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'INGENIERO_ENCARGADO', 'MANANA'),
-  ('Roberto Gómez (Capataz Mañana)', 'capataz.manana', 'manana@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'CAPATAZ', 'MANANA'),
-  ('Carlos Díaz (Capataz Tarde)', 'capataz.tarde', 'tarde@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'CAPATAZ', 'TARDE'),
-  ('Miguel Sánchez (Capataz Noche)', 'capataz.noche', 'noche@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'CAPATAZ', 'NOCHE')
+  ('Encargado (Salida, Gas y Tierra)', 'encargado', 'encargado@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'INGENIERO_ENCARGADO', 'MANANA'),
+  ('Roberto Gómez (Capataz)', 'capataz.manana', 'manana@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'CAPATAZ', 'MANANA'),
+  ('Carlos Díaz (Capataz)', 'capataz.tarde', 'tarde@ceramica-planta.com', '$2b$10$un3ms6htX6T/C/yVf7YVlu7IHjd.GF6k8poMT9ybdyiINvCsrKeCe', 'CAPATAZ', 'TARDE')
 ON CONFLICT ("username") DO NOTHING;
 
 -- 5. CATÁLOGO DE LADRILLOS INICIAL

@@ -80,18 +80,33 @@ export const shiftReports = pgTable(
   {
     id: serial('id').primaryKey(),
     productionDate: text('production_date').notNull(), // YYYY-MM-DD
-    shift: shiftTypeEnum('shift').notNull(),
+    shift: shiftTypeEnum('shift').notNull(), // Activos: 'MANANA' | 'TARDE'
+    // 1. Trazabilidad de Apertura y Cierre del Capataz (5 Etapas)
     foremanId: integer('foreman_id').references(() => users.id, {
       onDelete: 'set null',
     }),
     foremanName: text('foreman_name').notNull(),
     status: shiftStatusEnum('status').notNull().default('EN_CURSO'),
+    openedAt: timestamp('opened_at').defaultNow().notNull(),
+    closedAt: timestamp('closed_at'),
+    closedById: integer('closed_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    reopenedById: integer('reopened_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    reopenedAt: timestamp('reopened_at'),
+    // 2. Carga separada de Salida de Material, Consumo de Gas y Viajes de Tierra (Otra persona / Encargado)
     gasConsumption: doublePrecision('gas_consumption').notNull().default(0),
     dispatchedTons: doublePrecision('dispatched_tons').notNull().default(0),
     blackEarthTrips: integer('black_earth_trips').notNull().default(0),
     redEarthTrips: integer('red_earth_trips').notNull().default(0),
+    suppliesUserId: integer('supplies_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    suppliesUserName: text('supplies_user_name'),
+    suppliesUpdatedAt: timestamp('supplies_updated_at'),
     notes: text('notes').default(''),
-    closedAt: timestamp('closed_at'),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
@@ -139,4 +154,3 @@ export type RoleType = (typeof roleEnum.enumValues)[number];
 export type ShiftType = (typeof shiftTypeEnum.enumValues)[number];
 export type ShiftStatusType = (typeof shiftStatusEnum.enumValues)[number];
 export type ProductionStageType = (typeof productionStageEnum.enumValues)[number];
-
